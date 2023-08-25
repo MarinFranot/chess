@@ -5,7 +5,7 @@
 
 
 int main() {
-    int pos = 9;
+    int pos = 20;
 
     uint64_t mask = Bitboard::getRookMask(pos);
 
