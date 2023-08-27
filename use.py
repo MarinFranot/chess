@@ -23,7 +23,6 @@ def colorBoard(board :Board, mask):
 if __name__ == "__main__":
     mask = exec()
     print(mask)
-    print('\n\n')
 
     board = Board()
     colorBoard(board, mask)

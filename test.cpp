@@ -1,14 +1,36 @@
 #include <iostream>
 
 
+
+
+void f(int x){
+    int y = 2;
+    auto g = [&y](){y++;};
+
+    
+    g();
+    g();
+    std::cout << "y: " << y << std::endl;
+
+    std::cout << x << std::endl;
+}
+
+
+
+
+
+
+
+
+
+
 int main(){
-    int x = 0;
+    uint64_t x = 0b101;
 
-    int i = 0;
+    int i = 2;
 
-    x |= 1<<i;
+    bool bit_i = (x >> i) & 1;
 
-    std::cout << "x = " << x << std::endl;
+    std::cout << bit_i << std::endl;
 
-    return 0;
 }

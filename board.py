@@ -17,15 +17,21 @@ class Board:
         self.squares[nb].color = color
         
     
-    def show(self):
+    def show(self, printIdx=True):
         window = tk.Tk()
         window.title("Chess")
-        window.geometry("800x800")
+
+        size = 500
+        dim = size/8
+        window.geometry(str(size)+"x"+str(size))
         window.config(background="white")
 
         for i in range(64):
-            square = tk.Canvas(window, width=100, height=100, bg=self.squares[i].color, highlightthickness=0)
-            square.grid(row=8-i//8, column=i%8)
+            square = tk.Button(window, bg=self.squares[i].color, 
+                               highlightthickness=0)
+            
+            square.place(x=(i%8)*dim, y=(i//8)*dim, width=dim, height=dim)
+
         
         window.mainloop()
 

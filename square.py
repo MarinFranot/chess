@@ -7,5 +7,6 @@ class Square:
 
     def __init__(self):
         self.color = self.white
+        self.selected = False
 
     
