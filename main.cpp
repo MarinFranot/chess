@@ -7,7 +7,7 @@
 int main(int argc, char* argv[]) {
 
     uint64_t pieces = std::stoull(argv[1]);
-    int pos = 30;
+    int pos = 28;
 
     uint64_t mask = Bitboard::getRookMask(pos);
 

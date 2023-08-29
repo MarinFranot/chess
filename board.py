@@ -32,18 +32,28 @@ class Board:
         for i in range(64):
             if self.squares[i].selected:
                 piecesMask += 1 << i
-        print('piecesMask = '+str(piecesMask))
-
 
         make = subprocess.run('make', capture_output=True, text=True)
         print(make.stdout)
 
-        command = './exec '+str(piecesMask)
-        print('command : '+command)
+        command = ['./exec', str(piecesMask)]
         result = subprocess.run(command , capture_output=True, text=True)
-        print('result : '+result.stdout)
+        self.showControl(int(result.stdout))
         return int(result.stdout)
 
+    def showControl(self, mask):
+        for i in range(64):
+            if mask & (1 << i):
+                self.squares[i].color = "green"
+                self.squares[i].desactivate()
+                self.buttons[i].config(bg="green", activebackground="green")
+            else:
+                color = self.squares[i].backColor
+                self.buttons[i].config(bg=color, activebackground=color)
+                self.squares[i].color = color
+                
+                
+            
 
     def show(self):
         window = tk.Tk()

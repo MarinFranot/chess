@@ -19,5 +19,9 @@ class Square:
         else:
             self.color = self.backColor
 
+    def desactivate(self):
+        self.selected = False
+        self.color = self.backColor
+
 
     
