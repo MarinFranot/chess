@@ -1,6 +1,15 @@
 from board import Board
+import tkinter as tk
+import subprocess
 
 
-if __name__ == "__main__":
-    board = Board()
-    board.show()
+
+x = 30720
+
+command = './exec '+str(x)
+
+
+result = subprocess.run(command , capture_output=True, text=True)
+
+
+print('result : '+result.stdout)

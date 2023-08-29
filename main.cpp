@@ -4,14 +4,10 @@
 
 
 
-int main() {
-    int pos = 28;
+int main(int argc, char* argv[]) {
 
-    int piecesPos[] = {30};
-    uint64_t pieces = 0;
-    for (int piece : piecesPos){
-        pieces |= 1<<piece;
-    }
+    uint64_t pieces = std::stoull(argv[1]);
+    int pos = 30;
 
     uint64_t mask = Bitboard::getRookMask(pos);
 

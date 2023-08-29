@@ -1,11 +1,4 @@
-import subprocess
 from board import Board
-
-def exec():
-    commande = ["./exec"]
-
-    result = subprocess.run(commande, capture_output=True, text=True)
-    return int(result.stdout)
 
 
 def colorBoard(board :Board, mask):
@@ -21,11 +14,7 @@ def colorBoard(board :Board, mask):
 
 
 if __name__ == "__main__":
-    mask = exec()
-    print(mask)
 
     board = Board()
-    colorBoard(board, mask)
-
     board.show()
     
