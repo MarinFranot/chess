@@ -36,7 +36,7 @@ class Board:
         make = subprocess.run('make', capture_output=True, text=True)
         print(make.stdout)
 
-        command = ['./exec', str(piecesMask)]
+        command = ['./exec', 'getMoves', str(piecesMask)]
         result = subprocess.run(command , capture_output=True, text=True)
         self.showControl(int(result.stdout))
         return int(result.stdout)
@@ -52,7 +52,7 @@ class Board:
                 self.buttons[i].config(bg=color, activebackground=color)
                 self.squares[i].color = color
                 
-                
+           
             
 
     def show(self):
@@ -83,9 +83,6 @@ class Board:
         buttonExec.place(x=size+dim/4, y=nbB*dim/2, width=dim*3/2, height=dim/2)
         
 
-                                 
-        
-        
         window.mainloop()
 
 

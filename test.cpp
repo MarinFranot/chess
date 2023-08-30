@@ -1,36 +1,22 @@
 #include <iostream>
+#include <cstring>
+#include <unordered_set>
+#include <cmath>
 
-
-
-
-void f(int x){
-    int y = 2;
-    auto g = [&y](){y++;};
-
-    
-    g();
-    g();
-    std::cout << "y: " << y << std::endl;
-
-    std::cout << x << std::endl;
+int f(int x, int &y){
+    y = 7;
+    return x*x;
 }
 
 
 
+int main() {
+    
+    int x = 7;
+    int y = 1 + log2(x+1);
+
+    std::cout << y << std::endl;
 
 
-
-
-
-
-
-int main(){
-    uint64_t x = 0b101;
-
-    int i = 2;
-
-    bool bit_i = (x >> i) & 1;
-
-    std::cout << bit_i << std::endl;
-
+    return 0;
 }
