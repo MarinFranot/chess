@@ -3,19 +3,25 @@
 #include <unordered_set>
 #include <cmath>
 
-int f(int x, int &y){
-    y = 7;
-    return x*x;
+void f(int* x, int size){
+    for (int i=0; i<size; i++){
+        x[i]++;
+    }
 }
 
 
 
 int main() {
     
-    int x = 7;
-    int y = 1 + log2(x+1);
+    int x[] = {1,2,3,4,5};
+    int size = 5;
 
-    std::cout << y << std::endl;
+    f(x, size);
+
+    for (int i=0; i<size; i++){
+        std::cout << x[i] << std::endl;
+    }
+
 
 
     return 0;

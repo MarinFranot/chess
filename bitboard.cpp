@@ -108,7 +108,7 @@ namespace Bitboard{
         uint64_t miniSize = UINT64_MAX;
         int nbShift = 1;
         uint64_t res = 0ULL;
-        for (int i = 0; i < 1000000; i++){
+        while (64-nbShift >= 1+log2(arrSize+1)){
             uint64_t magicNb = dis(gen);
             uint64_t* newComb = new uint64_t[arrSize];
             std::memcpy(newComb, picecsComb, arrSize * sizeof(uint64_t));
@@ -137,13 +137,14 @@ namespace Bitboard{
         return res;
     }
 
-    uint64_t** generateRookTable(){
+    uint64_t** generateRookTable(uint64_t* magicNumbers){
         uint64_t** tab = new uint64_t*[64];
         for (int i=0; i<64; i++) {
             int maxTab = 0;
             int arrsize = 0;
             uint64_t* piecesComb = Bitboard::getAllPiecesComb(i, arrsize);
             uint64_t magicNb = getMagicNumber(piecesComb, arrsize, maxTab);
+            magicNumbers[i] = magicNb;
 
             uint64_t* moves = new uint64_t[maxTab];
 

@@ -8,5 +8,6 @@ namespace Bitboard {
     uint64_t* getAllPiecesComb(int pos, int &arrsize);
     uint64_t getMagicNumber(uint64_t* picecsComb, int arrsize, int &maxTab);
     bool isUnique(uint64_t* picecsComb, int arrsize);
+    uint64_t** getRookTable(uint64_t* magicNumbers);
     
 }

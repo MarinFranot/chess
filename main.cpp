@@ -17,11 +17,8 @@ int main(int argc, char* argv[]) {
         int arrsize = 0;
         uint64_t* tab = Bitboard::getAllPiecesComb(pos, arrsize);
 
-        bool unique = Bitboard::isUnique(tab, arrsize);
-
-        std::cout << "unique main : " << unique << std::endl;
-
-        uint64_t magicNb = Bitboard::getMagicNumber(tab, arrsize);
+        int maxTab = 0;
+        uint64_t magicNb = Bitboard::getMagicNumber(tab, arrsize, maxTab);
 
         std::cout << "magicNb result : " << magicNb << std::endl;
 
