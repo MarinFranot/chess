@@ -1,28 +1,43 @@
 #include <iostream>
-#include <cstring>
-#include <unordered_set>
-#include <cmath>
+#include <fstream>
+#include <string>
 
-void f(int* x, int size){
-    for (int i=0; i<size; i++){
-        x[i]++;
+
+namespace Test {
+    int x = 0;
+    int y = 0;
+    enum pieceType {PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING, EMPTY};
+
+    void print(){
+        std::cout << "x: " << x << std::endl;
+        std::cout << "y: " << y << std::endl;
+    }
+
+    void setX(int newX){
+        x = newX;
+    }
+
+    void setY(int newY){
+        y = newY;
+    }
+
+    void incrementX(){
+        x++;
+    }
+
+    void incrementY(){
+        y++;
     }
 }
 
 
-
-int main() {
+int main(){
+    Test::print();
+    Test::setX(5);
+    Test::incrementY();
+    Test::print();
     
-    int x[] = {1,2,3,4,5};
-    int size = 5;
-
-    f(x, size);
-
-    for (int i=0; i<size; i++){
-        std::cout << x[i] << std::endl;
-    }
-
-
-
+    Test::pieceType piece = Test::KING;
+    std::cout << static_cast<uint64_t>(piece) << std::endl;
     return 0;
 }
