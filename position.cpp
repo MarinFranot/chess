@@ -3,6 +3,7 @@
 #include <string>
 
 #include "position.h"
+#include "tools.h"
 
 
 
@@ -16,14 +17,24 @@ namespace Position {
   extern const int SOUTH_EAST = -7;
   extern const int NORTH_WEST = 7;
   extern const int SOUTH_WEST = -9;
+  uint64_t rim = 0xFF818181818181FF;
 
   uint64_t* pawnMoves;
   uint64_t* knightMoves;
-  uint64_t** bishopMoves[64];
-  uint64_t** rookMoves[64];
-  uint64_t** queenMoves[64];
+  uint64_t* bishopMoves[64];
+  uint64_t* rookMoves[64];
+  uint64_t* queenMoves[64];
   uint64_t* kingMoves;
 
+  uint64_t* bishopMagicNbs;
+  uint64_t* rookMagicNbs;
+  int* bishopShifts;
+  int* rookShifts;
+
+  uint64_t* rankMasks;
+  uint64_t* colMasks;
+  uint64_t* diagNEMasks;
+  uint64_t* diagSEMasks;
 
   bool whiteMove;
   pieceType myPieces[64];
@@ -32,6 +43,10 @@ namespace Position {
   uint64_t ennemyPiecesMask;
   uint64_t myPawnsMask;
   uint64_t ennemyPawnsMask;
+
+  uint64_t pins;
+  int myKingPos;
+  int ennemyKingPos;
 
 
   //generate masks for all positions of low range pieces
@@ -80,7 +95,7 @@ namespace Position {
     return res;
   }
 
-  uint64_t** getTable(bool isRook, uint64_t* magicNbs, uint64_t* shifts){
+  uint64_t** getTable(bool isRook, uint64_t* magicNbs, int* shifts){
     std::ifstream file(isRook ? "rookTable.txt" : "bishopTable.txt");
     if (!file.is_open()) {
         throw std::runtime_error("Failed to open the file.");
@@ -116,25 +131,69 @@ namespace Position {
     return table;
   }
 
-
-  int getCol(int pos){
-    return pos%boardSize;
+  
+  uint64_t getNEDiag(int pos){
+    return diagNEMasks[14-(pos/8-pos%8+7)];
   }
-  int getRank(int pos){
-    return pos/boardSize;
-  }
-  int getPos(int col, int rank){
-    return rank*boardSize + col;
+  uint64_t getSEDiag(int pos){
+    return diagSEMasks[pos/8+pos%8];
   }
 
+  uint64_t lookupBishop(int pos){
+    uint64_t mask = (myPiecesMask|ennemyPiecesMask) & (getNEDiag(pos)|getSEDiag(pos)) & ~(1ULL<<pos) & ~rim;
+    return bishopMoves[pos][(mask*bishopMagicNbs[pos])>>bishopShifts[pos]];
+  }
+  uint64_t lookupRook(int pos){
+    uint64_t mask = (myPiecesMask|ennemyPiecesMask) & (rankMasks[pos%8]|colMasks[pos/8]) & ~(1ULL<<pos) & ~rim;
+    return rookMoves[pos][(mask*rookMagicNbs[pos])>>rookShifts[pos]];
+  }
+  uint64_t lookupQueen(int pos){
+    return lookupBishop(pos) | lookupRook(pos);
+  }
 
-  uint64_t getControl(pieceType piece, int pos, bool isWhite, bool restriction){
+
+  uint64_t getMoves(pieceType piece, int pos, bool isWhite, bool getControl){
+    uint64_t res = 0;
     if (piece == PAWN){
+      int dir = whiteMove ? 1 : -1;
+      uint64_t up1 = 1ULL<<(pos+8*dir);
+      if (getControl){
+        res = pawnMoves[pos] & ~rankMasks[pos%8];
+      } else {
+        res = pawnMoves[pos] & ~(myPiecesMask & ennemyPiecesMask & up1);
+        if (pos/8 == 1 && (((myPiecesMask & ennemyPiecesMask)>>(pos+8*dir))&1ULL)){
+          res &= ~(1ULL << (pos+16*dir));
+        }
+        res &= ennemyPiecesMask & up1;
+      }
+    } else if (piece == KNIGHT){
+      res = getControl ? knightMoves[pos] : knightMoves[pos] & ~myPiecesMask;
+    } else if (piece == BISHOP){
+      res = getControl ? lookupBishop(pos) : lookupBishop(pos) & ~myPiecesMask;
+    } else if (piece == ROOK){
+      res = getControl ? lookupRook(pos) : lookupRook(pos) & ~myPiecesMask;
+    } else if (piece == QUEEN){
+      res = getControl ? lookupQueen(pos) : lookupQueen(pos) & ~myPiecesMask;
+    } else if (piece == KING){
+      res = getControl ? kingMoves[pos] : kingMoves[pos] & ~(myPiecesMask|ennemyPiecesMask);
+    }
+    return res;
+  }
 
+
+  void updatePins(){
+    pins = 0;
+    uint64_t queen = lookupQueen(ennemyKingPos);
+    while(queen){
+      int index = Tools::getFirstBitIndex(queen);
+      queen &= (queen - 1);
+      pieceType pinned = ennemyPieces[index];
+      if (pinned != EMPTY){
+        int dir = abs(Tools::getDir(ennemyKingPos, index));
+        
+      }
     }
   }
-
-
 
   void movePiece(Move move){
     int from = move.getFrom();
@@ -154,6 +213,8 @@ namespace Position {
         ennemyPawnsMask &= ~(1ULL<<to);
       }
     }
+
+    updatePins();
 
   }
 

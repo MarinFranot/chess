@@ -8,6 +8,7 @@
 
 #include "position.h"
 #include "bitboard.h"
+#include "tools.h"
 
 
 namespace Bitboard{
@@ -23,8 +24,8 @@ namespace Bitboard{
     for (int way : ways[isRook]){
       
       auto getFlagStop = [way, pieces, mini, maxi, isRook](int x){
-        int col = Position::getCol(x);
-        int rank = Position::getRank(x);
+        int col = Tools::getCol(x);
+        int rank = Tools::getRank(x);
         bool flagstop = isRook &((col<=mini && way==Position::WEST) || (col>=maxi && way==Position::EAST) || 
                 (rank<=mini && way==Position::SOUTH) || (rank>=maxi && way==Position::NORTH)) ||
                 !isRook & ((col<=mini && (way==Position::NORTH_WEST || way==Position::SOUTH_WEST)) || (col>=maxi && (way==Position::NORTH_EAST || way==Position::SOUTH_EAST)) ||
@@ -158,7 +159,7 @@ namespace Bitboard{
       //uint64_t shift = 1 + log2(arrsize+1);
       for (int j=0; j<arrsize; j++){
         int index = (piecesComb[j]*magicNb) >> shift;
-        uint64_t moves = getMoves(i, piecesComb[j], isRook, true);
+        uint64_t moves = getMoves(i, piecesComb[j], isRook, false);
         outFile << index << " " << moves << std::endl; //square
       }
 

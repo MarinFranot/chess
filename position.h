@@ -44,9 +44,6 @@ namespace Position {
   uint64_t* getLineMask(bool isRank);
   uint64_t* getDiagMask(bool isUpRight);
   uint64_t** getTable(bool isRook, uint64_t* magicNbs, uint64_t* shifts);
-  int getCol(int pos);
-  int getRank(int pos);
-  int getPos(int col, int rank);
   
   
 }

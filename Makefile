@@ -1,6 +1,6 @@
 OUTPUT = exec
 
-SOURCES = main.cpp position.cpp bitboard.cpp
+SOURCES = main.cpp position.cpp bitboard.cpp tools.cpp
 
 CC = g++
 
