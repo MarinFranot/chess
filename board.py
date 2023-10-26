@@ -84,6 +84,7 @@ class Board:
     
 
   def showLongMoves(self, pos, mask, isRook):
+    print("mask = ", mask)
     magicNb = int(self.table.rookMagiNumbers[pos]) if isRook else int(self.table.bishopMagiNumbers[pos])
     shift = int(self.table.rookShifts[pos]) if isRook else int(self.table.bishopShifts[pos])
     idx = (mask * magicNb) >> shift

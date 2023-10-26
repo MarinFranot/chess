@@ -29,7 +29,7 @@ namespace Tools {
   int getDir(int from, int to){
     int deltaX = to%8 - from%8;
     int deltaY = to/8 - from/8;
-    return (deltaX + 8*deltaY) / std::max(deltaX, deltaY);
+    return (deltaX + 8*deltaY) / std::max(abs(deltaX), abs(deltaY));
   }
 
   int toIndexPos(std::string square) {
@@ -70,6 +70,8 @@ namespace Tools {
     uint64_t** table = new uint64_t*[64];
     for (int i = 0; i < 64; i++) {
       table[i] = nullptr;
+      magicNbs[i] = 777;
+      shifts[i] = 777;
     }
     int pos = 0;
     auto getNb = [](std::string line){
@@ -92,6 +94,9 @@ namespace Tools {
       shifts[pos] = getNb(line);
 
       table[pos] = new uint64_t[maxi+1];
+      for (int i=0; i<=maxi; i++){
+        table[pos][i] = 777;
+      }
       
       for (int j=0; j<nbComb; j++){
         std::getline(file, line);

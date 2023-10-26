@@ -17,24 +17,25 @@ namespace Position {
   extern const int NORTH_WEST = 7;
   extern const int SOUTH_WEST = -9;
   uint64_t rim = 0xFF818181818181FF;
+  uint64_t corners = 0x8100000000000081;
 
-  uint64_t* bishopMagicNbs = new uint64_t[64];
-  uint64_t* rookMagicNbs = new uint64_t[64];
-  int* bishopShifts = new int[64];
-  int* rookShifts = new int[64];
+  uint64_t* bishopMagicNbs;// = new uint64_t[64];
+  uint64_t* rookMagicNbs;// = new uint64_t[64];
+  int* bishopShifts;// = new int[64];
+  int* rookShifts;// = new int[64];
 
   uint64_t* pawnMoves = Tools::getPiecesMovesMask(PAWN);
   uint64_t* knightMoves = Tools::getPiecesMovesMask(KNIGHT);
-  uint64_t** bishopMoves = Tools::getTable(false, bishopMagicNbs, bishopShifts);
-  uint64_t** rookMoves = Tools::getTable(true, rookMagicNbs, rookShifts);
+  uint64_t** bishopMoves;// = Tools::getTable(false, bishopMagicNbs, bishopShifts);
+  uint64_t** rookMoves;// = Tools::getTable(true, rookMagicNbs, rookShifts);
   uint64_t* kingMoves = Tools::getPiecesMovesMask(KING);
 
   uint64_t* rankMasks = Tools::getLineMasks(true);
   uint64_t* colMasks = Tools::getLineMasks(false);
-  uint64_t* diagNEMasks = Tools::getDiagMasks(true);
-  uint64_t* diagSEMasks = Tools::getDiagMasks(false);
+  uint64_t* diagNEMasks;// = Tools::getDiagMasks(true);
+  uint64_t* diagSEMasks;// = Tools::getDiagMasks(false);
 
-  bool whiteMove;
+  bool whiteMove = true;
   pieceType* myPieces = new pieceType[64];
   pieceType* ennemyPieces = new pieceType[64];
   uint64_t myPiecesMask = 0;
@@ -44,10 +45,10 @@ namespace Position {
   uint64_t myControl = 0;
   uint64_t ennemyControl = 0;
 
-  uint64_t pins;
+  uint64_t pins = 0;
   uint64_t* pinsMasks = new uint64_t[64];
-  int myKingPos;
-  int ennemyKingPos;
+  int myKingPos = 0;
+  int ennemyKingPos = 0;
   Move* legalMoves = new Move[Tools::MAX_LEGAL_MOVES];
   int halfMovesSinceReset = 0;
   int moveCounter = 0;
@@ -57,21 +58,46 @@ namespace Position {
   bool possible00[2] = {false, false}; //black, white
   bool possible000[2] = {false, false};
 
+  void printBitboard(uint64_t b) {
+    for (int i=0; i<8; i++){
+      for (int j=0; j<8; j++){
+        std::cout << ((b>>(i*8+j))&1ULL);
+      }
+      std::cout << std::endl;
+    }
+    std::cout << std::endl;
+
+  }
+
   uint64_t getNEDiag(int pos){
     return diagNEMasks[14-(pos/8-pos%8+7)];
   }
   uint64_t getSEDiag(int pos){
     return diagSEMasks[pos/8+pos%8];
   }
+  uint64_t getRankMask(int pos){
+    return rankMasks[pos/8];
+  }
+  uint64_t getColMask(int pos){
+    return colMasks[pos%8];
+  }
 
 
   uint64_t lookupBishop(int pos){
-    uint64_t mask = (myPiecesMask|ennemyPiecesMask) & (getNEDiag(pos)|getSEDiag(pos)) & ~(1ULL<<pos);
-    return bishopMoves[pos][(mask*bishopMagicNbs[pos])>>bishopShifts[pos]];
+    uint64_t mask = (myPiecesMask|ennemyPiecesMask) & (getNEDiag(pos)|getSEDiag(pos)) & ~(1ULL<<pos) & ~rim;
+    uint64_t res = bishopMoves[pos][(mask*bishopMagicNbs[pos])>>bishopShifts[pos]];
+    //std::cout << "bishopMoves[" << pos << "][" << ((mask*bishopMagicNbs[pos])>>bishopShifts[pos]) << "] = " << res << std::endl;
+    return res;
   }
   uint64_t lookupRook(int pos){
-    uint64_t mask = (myPiecesMask|ennemyPiecesMask) & (rankMasks[pos%8]|colMasks[pos/8]) & ~(1ULL<<pos);
-    return rookMoves[pos][(mask*rookMagicNbs[pos])>>rookShifts[pos]];
+    uint64_t restrict = rim & ~((getRankMask(63) & -static_cast<uint64_t>(pos/8==7)) | (getRankMask(0) & -static_cast<uint64_t>(pos/8==0)) |
+     (getColMask(7) & -static_cast<uint64_t>(pos%8==7)) | (getColMask(0) & -static_cast<uint64_t>(pos%8==0))) ;
+    uint64_t mask = (myPiecesMask|ennemyPiecesMask) & (getRankMask(pos)|getColMask(pos)) & ~(1ULL<<pos) & ~(restrict | corners);	
+    uint64_t res = rookMoves[pos][(mask*rookMagicNbs[pos])>>rookShifts[pos]];
+    //std::cout << "rookMoves[" << pos << "][" << ((mask*rookMagicNbs[pos])>>rookShifts[pos]) << "] = " << res;
+    //std::cout << ", mask : " << mask << ", shift : " << rookShifts[pos] << ", magicNb : " << rookMagicNbs[pos] << std::endl;
+
+    return res;
   }
   uint64_t lookupQueen(int pos){
     return lookupBishop(pos) | lookupRook(pos);
@@ -82,7 +108,7 @@ namespace Position {
     pins = 0;
     uint64_t queen = lookupQueen(ennemyKingPos);
     while(queen){
-      int index = Tools::getFirstBitIndex(queen);
+      int index = Tools::getLastBitIndex(queen);
       queen &= (queen - 1);
       pieceType pinned = ennemyPieces[index];
       if (pinned != EMPTY){
@@ -90,15 +116,15 @@ namespace Position {
         uint64_t mask;
         bool isRank = false;
         if (dir == NORTH || dir == EAST){
-          mask = dir==NORTH ? lookupRook(index) & colMasks[index%8] : lookupRook(index) & rankMasks[index/8];
+          mask = dir==NORTH ? lookupRook(index) & getColMask(index) : lookupRook(index) & getRankMask(index);
           isRank = true;
         } else if (dir == NORTH_EAST || dir == NORTH_WEST){
           mask = dir==NORTH_EAST ? lookupBishop(index) & getNEDiag(index) : lookupBishop(index) & getSEDiag(index);
         }
 
         uint64_t originalMask = mask;
-        while(mask){
-          int indexSearsh = Tools::getFirstBitIndex(mask);
+        while(mask!=0){
+          int indexSearsh = Tools::getLastBitIndex(mask);
           mask &= (mask - 1);
           pieceType pinner = myPieces[indexSearsh];
           if (pinner==QUEEN || (pinner==ROOK && isRank) || (pinner==BISHOP && !isRank)){
@@ -118,7 +144,7 @@ namespace Position {
       int dir = whiteMove ? 1 : -1;
       uint64_t up1 = 1ULL<<(pos+8*dir);
       if (getControl){
-        res = pawnMoves[pos] & ~rankMasks[pos%8];
+        res = pawnMoves[pos] & ~getRankMask(pos);
       } else {
         res = pawnMoves[pos] & ~(myPiecesMask & ennemyPiecesMask & up1);
         if (pos/8 == 1 && (((myPiecesMask & ennemyPiecesMask)>>(pos+8*dir))&1ULL)){
@@ -147,13 +173,13 @@ namespace Position {
     uint64_t mask = myPiecesMask;
     std::cout << "myPiecesMask : " << myPiecesMask << std::endl;
     while(mask){
-      int from = Tools::getFirstBitIndex(mask);
+      int from = Tools::getLastBitIndex(mask);
       mask &= (mask - 1);
       pieceType piece = myPieces[from];
       uint64_t moves = getMoves(piece, from, whiteMove, false);
       myControl |= getMoves(piece, from, whiteMove, true);
       while(moves){
-        int to = Tools::getFirstBitIndex(moves);
+        int to = Tools::getLastBitIndex(moves);
         moves &= (moves - 1);
         bool capture = (ennemyPiecesMask >> to) & 1ULL;
         pieceType captured = capture ? ennemyPieces[to] : EMPTY;
@@ -165,6 +191,21 @@ namespace Position {
   }
 
   void init(std::string fen){
+    diagNEMasks = Tools::getDiagMasks(true);
+    diagSEMasks = Tools::getDiagMasks(false);
+
+    bishopMagicNbs = new uint64_t[64];
+    rookMagicNbs = new uint64_t[64];
+    bishopShifts = new int[64];
+    rookShifts = new int[64];
+
+
+    bishopMoves = Tools::getTable(false, bishopMagicNbs, bishopShifts);
+    rookMoves = Tools::getTable(true, rookMagicNbs, rookShifts);
+
+
+
+
     long unsigned int index = 0;
     int indexPos = 56;
 
@@ -251,6 +292,14 @@ namespace Position {
   
     std::string moveCounterString = movesCountString.substr(movesCountString.find(" ")+1, movesCountString.length());
     moveCounter = std::stoi(moveCounterString);
+
+    /*for (int i=0; i<64; i++){
+      std::cout << "rookMagicNbs[" << i << "] = " << rookMagicNbs[i] << std::endl;
+      std::cout << "rookShifts[" << i << "] = " << rookShifts[i] << std::endl;
+      std::cout << "bishopMagicNbs[" << i << "] = " << bishopMagicNbs[i] << std::endl;
+      std::cout << "bishopShifts[" << i << "] = " << bishopShifts[i] << std::endl;
+
+    }*/
 
     updatePins();
     updateAllMoves();
