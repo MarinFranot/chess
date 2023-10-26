@@ -26,7 +26,20 @@ int main(int argc, char* argv[]) {
 
     delete[] tab;
   } else if (argument == "writeTable"){
-    Bitboard::generateLongTable(objMagic, true);
+    bool isRook = false;
+    uint64_t obj = isRook ? std::pow(2, 14)-1 : 1023;
+    Bitboard::generateLongTable(obj, isRook);
+  } else if (argument == "perf") {
+
+    std::string fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    Position::init(fen);
+
+    int depth = 1;
+    int nbComb = Position::getAllComb(depth);
+    std::cout << "Number of combinations for depth " << depth << " : " << nbComb << std::endl;
+
+    Position::free();
+
   }
   else {
     std::cout << "Error: invalid argument " << argv[1] << std::endl;
