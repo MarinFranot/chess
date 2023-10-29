@@ -15,8 +15,10 @@ namespace Tools {
   int getPos(int col, int rank);
   int getDir(int from, int to);
   int toIndexPos(std::string square);
-
-  uint64_t* getPiecesMovesMask(pieceType piece);
+  std::string toSquare(int pos);
+  int squareToInt(std::string str);
+  
+  uint64_t* getPiecesMovesMask(pieceType piece, bool white=true);
   uint64_t* getLineMasks(bool isRank);
   uint64_t* getDiagMasks(bool isUpRight);
   uint64_t** getTable(bool isRook, uint64_t* magicNbs, int* shifts);

@@ -10,7 +10,8 @@ namespace Tools {
   const int MAX_LEGAL_MOVES = 219;
 
   int getLastBitIndex(uint64_t x){
-    return std::log2(x & -x);
+    int res = std::log2(x & -x);
+    return res;
   }
   int getFirstBitIndex(uint64_t x){
       return std::log2(x);
@@ -38,6 +39,17 @@ namespace Tools {
     return (rank - '1')*8 + (col - 'a');
   }
 
+  std::string toSquare(int pos) {
+    char col = 'a' + pos%8;
+    char rank = '1' + pos/8;
+    return std::string(1, col) + std::string(1, rank);
+  }
+  int squareToInt(std::string str) {
+    return (str[1] - '1')*8 + (str[0] - 'a');
+  }
+
+
+
   uint64_t* getLineMasks(bool isRank){
     uint64_t* res = new uint64_t[8];
     for (int i=0; i<8; i++){
@@ -52,6 +64,9 @@ namespace Tools {
 
   uint64_t* getDiagMasks(bool isUpRight){
     uint64_t* res = new uint64_t[15];
+    for (int i=0; i<15; i++) {
+      res[i] = 0;
+    }
     for(int i=0; i<64; i++){
       int idx = isUpRight ? 14-(i/8-i%8+7) : i/8+i%8;
       res[idx] |= 1ULL<<i;
@@ -112,7 +127,7 @@ namespace Tools {
   }
 
     //generate masks for all positions of low range pieces
-  uint64_t* getPiecesMovesMask(pieceType piece){
+  uint64_t* getPiecesMovesMask(pieceType piece, bool white){
     int piecesAdd[3][8] = {{7, 8, 9, 16, 8, 8, 8, 8}, //pawn
       {-6, -10, -15, -17, 6, 10, 15, 17}, //knight
       {-7, -8, -9, -1, 1, 7, 8, 9}}; //king
@@ -124,9 +139,12 @@ namespace Tools {
     for (int pos=0; pos<64; pos++){
       uint64_t moves = 0;
       for (int move : add){
-        int newPos = move+pos;
-        if ((newPos>0) & (newPos<64)){
-          if (!((move%8 < 8/2)^(newPos%8 > pos%8))){
+        if (piece==PAWN && !white){
+          move = -move;
+        }
+        int newPos = pos+move;
+        if ((newPos>=0) & (newPos<64)){
+          if (!(((move+64)%8 < 8/2)^(newPos%8 >= pos%8))){
             moves |= 1ULL<<newPos;
           }
         }

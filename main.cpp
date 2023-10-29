@@ -1,7 +1,10 @@
 #include <iostream>
+#include <cmath>
+#include <chrono>
+
+
 #include "position.h"
 #include "bitboard.h"
-#include <cmath>
 
 
 int main(int argc, char* argv[]) {
@@ -32,14 +35,34 @@ int main(int argc, char* argv[]) {
   } else if (argument == "perf") {
 
     std::string fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    int correct[6] = {1, 20, 400, 8902, 197281, 4865609};
     Position::init(fen);
 
-    int depth = 1;
-    int nbComb = Position::getAllComb(depth);
-    std::cout << "Number of combinations for depth " << depth << " : " << nbComb << std::endl;
+    /*Position::Move  move = Position::Move(Tools::squareToInt("e2"), Tools::squareToInt("e4"), false);
+    Position::movePiece(move);
+    Position::Move  move2 = Position::Move(Tools::squareToInt("d7"), Tools::squareToInt("d5"), false);
+    Position::movePiece(move2);
+    Position::Move  move3 = Position::Move(Tools::squareToInt("f1"), Tools::squareToInt("b5"), false);
+    Position::movePiece(move3);*/
+
+
+    auto start = std::chrono::high_resolution_clock::now();
+
+    int depth = 5;
+    int nbComb = Position::getAllComb(depth, depth);
+    if (nbComb != correct[depth]) {
+      std::cout << "WRONG number of combinations for depth " << depth << " -> " << nbComb << std::endl;
+      std::cout << "Expected : " << correct[depth] << std::endl;
+    }else {
+      std::cout << "OK Number of combinations for depth " << depth << " : " << nbComb << std::endl;
+    }
+
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop-start);
+    std::cout << "Time taken by function: " << duration.count() << " milliseconds" << std::endl;
+
 
     Position::free();
-
   }
   else {
     std::cout << "Error: invalid argument " << argv[1] << std::endl;

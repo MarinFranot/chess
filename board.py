@@ -60,27 +60,19 @@ class Board:
         self.squares[i].color = color
         
        
-  def genKnightMoves(pos):
+  def genMoves(pos, type):
     moves = 0
-    add = [-6, -10, -15, -17, 6, 10, 15, 17]
-    for move in add:
+    add = {"knight" : [-6, -10, -15, -17, 6, 10, 15, 17],
+            "king" : [-9, -8, -7, -1, 1, 7, 8, 9],
+            "pawn" : [-7, -9, 7, 9]}
+    for move in add[type]:
       newPos = move + pos
       if newPos >= 0 and newPos < 64:
-        cond = not((move%8 < 8/2)^ (newPos%8 > pos%8))
+        cond = not((move%8 < 8/2)^ (newPos%8 >= pos%8))
         if cond:
           moves |= 2**newPos
     return moves
   
-  def genKingMoves(pos):
-    moves = 0
-    for i in range (-1, 2):
-      for j in range(-1, 2):
-        move = i + 8*j
-        newPos = pos + move
-        if (i!=0 or j!=0) and newPos >=0 and newPos < 64:
-          if not((move%8<8/2)^(newPos%8 >= pos%8)):
-            moves |= 2**newPos
-    return moves
     
 
   def showLongMoves(self, pos, mask, isRook):
@@ -130,11 +122,11 @@ class Board:
     buttonExec.place(x=size+dim/4, y=nbB*dim/2, width=dim*3/2, height=dim/2)
 
     nbB += 2
-    buttonKnight = tk.Button(window, text="knight", command=lambda: self.showControl(Board.genKnightMoves(self.lastClicked)))
+    buttonKnight = tk.Button(window, text="knight", command=lambda: self.showControl(Board.genMoves(self.lastClicked, "knight")))
     buttonKnight.place(x=size+dim/4, y=nbB*dim/2, width=dim*3/2, height=dim/2)
 
     nbB += 2
-    buttonKing = tk.Button(window, text="king", command=lambda: self.showControl(Board.genKingMoves(self.lastClicked)))
+    buttonKing = tk.Button(window, text="king", command=lambda: self.showControl(Board.genMoves(self.lastClicked, "king")))
     buttonKing.place(x=size+dim/4, y=nbB*dim/2, width=dim*3/2, height=dim/2)
 
     nbB += 2
