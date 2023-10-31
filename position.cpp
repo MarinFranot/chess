@@ -1,11 +1,8 @@
 #include <iostream>
 #include <string>
 
-#include <bitset>
 
 #include "position.h"
-
-
 
 
 namespace Position {
@@ -54,14 +51,14 @@ namespace Position {
   Move* legalMoves = new Move[Tools::MAX_LEGAL_MOVES];
   int halfMovesSinceReset = 0;
   int moveCounter = 0;
-  int enPassantPossible = -1;
+  int enPassant = -1;
   std::stack<SavePos> previousPos;
   bool check = false;
-  int checkers[2] = {-1, -1};
+  int checkers[2];
   uint64_t blockCheck = UINT64_MAX;
 
   bool possible00[2] = {false, false}; //black, white
-  bool possible000[2] = {false, false};
+  bool possible000[2];// = {false, false};
 
   void printBitboard(uint64_t b) {
     for (int i=0; i<8; i++){
@@ -88,23 +85,36 @@ namespace Position {
     return colMasks[pos%8];
   }
 
+  bool getWhiteMove() {
+    return whiteMove;
+  }
+  Move* getLegalMoves() {
+    return legalMoves;
+  }
+  bool getCheck() {
+    return check;
+  }
+  pieceType* getMyPieces() {
+    return myPieces;
+  }
+  pieceType* getEnnemyPieces() {
+    return ennemyPieces;
+  }
+
 
   uint64_t lookupBishop(int pos){
-    uint64_t mask = (myPiecesMask|(ennemyPiecesMask &~ennemyKingPos)) & (diagNEMasks[14-(pos/8-pos%8+7)]|diagSEMasks[pos/8+pos%8]) & ~(1ULL<<pos) & ~rim;
+    uint64_t mask = (myPiecesMask|(ennemyPiecesMask &~(1ULL<<ennemyKingPos))) & (diagNEMasks[14-(pos/8-pos%8+7)]|diagSEMasks[pos/8+pos%8]) & ~(1ULL<<pos) & ~rim;
     uint64_t index = (mask*bishopMagicNbs[pos])>>(bishopShifts[pos]);
-    uint64_t res = bishopMoves[pos][index];
-    return res;
+    return bishopMoves[pos][index];
   }
   uint64_t lookupRook(int pos){
     uint64_t restrict = rim & ~((getRankMask(63) & -static_cast<uint64_t>(pos/8==7)) | (getRankMask(0) & -static_cast<uint64_t>(pos/8==0)) |
      (getColMask(7) & -static_cast<uint64_t>(pos%8==7)) | (getColMask(0) & -static_cast<uint64_t>(pos%8==0))) ;
-    uint64_t mask = (myPiecesMask|(ennemyPiecesMask &~ennemyKingPos)) & (getRankMask(pos)|getColMask(pos)) & ~(1ULL<<pos) & ~(restrict | corners);	
-    uint64_t res = rookMoves[pos][(mask*rookMagicNbs[pos])>>rookShifts[pos]];
-    return res;
+    uint64_t mask = (myPiecesMask|(ennemyPiecesMask &~(1ULL<<ennemyKingPos))) & (getRankMask(pos)|getColMask(pos)) & ~(1ULL<<pos) & ~(restrict | corners);	
+    return rookMoves[pos][(mask*rookMagicNbs[pos])>>rookShifts[pos]];
   }
   uint64_t lookupQueen(int pos){
-    uint64_t res = lookupBishop(pos) | lookupRook(pos);
-    return res;
+    return lookupBishop(pos) | lookupRook(pos);
   }
 
   //update pins and discover checks
@@ -134,12 +144,12 @@ namespace Position {
           if (pinner==QUEEN || (pinner==ROOK && isRank) || (pinner==BISHOP && !isRank)){
             pins |= 1ULL << index;
             pinsMasks[index] = originalMask;
-            //std::cout << "PIN " << Tools::toSquare(index) << std::endl;
             break;
           }
         }
       }
       //update checks
+      //std::cout << check << checkers[0] << checkers[1] << std::endl;
       if (myPiecesMask & (1ULL<<index) && index!=checkers[0]){
         pieceType piece = myPieces[index];
         int dir = abs(Tools::getDir(ennemyKingPos, index));
@@ -195,7 +205,7 @@ namespace Position {
     if (piece == PAWN){
       int dir = whiteMove ? 1 : -1;
       if (getControl){
-        res = pawnMoves[0][pos] & ~getColMask(pos);
+        res = pawnMoves[whiteMove][pos] & ~getColMask(pos);
       } else {
         uint64_t col = getColMask(pos);
         res = pawnMoves[whiteMove][pos] & ~((myPiecesMask | ennemyPiecesMask) & col);
@@ -205,7 +215,8 @@ namespace Position {
         } else if (((myPiecesMask | ennemyPiecesMask)>>(pos+8*dir))&1ULL){
           res &= ~up2;
         }
-        res = ((res & col) | (res & ennemyPiecesMask)) & blockCheck & pin;
+        bool passant = enPassant >= 0;
+        res = ((res & col) | (res & (ennemyPiecesMask| ((1ULL<<enPassant)*passant)))) & blockCheck & pin;
       }
       
     } else if (piece == KNIGHT){
@@ -217,7 +228,24 @@ namespace Position {
     } else if (piece == QUEEN){
       res = getControl ? lookupQueen(pos) : lookupQueen(pos) & ~myPiecesMask & blockCheck &pin;
     } else if (piece == KING){
-      res = getControl ? kingMoves[pos] : kingMoves[pos] & ~(myPiecesMask|ennemyControl);
+      if (getControl) {
+        res = kingMoves[pos];
+      } else {
+        res = kingMoves[pos] & ~(myPiecesMask|ennemyControl);
+        if (possible00[whiteMove]) {
+          uint64_t mask00 = whiteMove ? 0x60ULL : 0x6000000000000000ULL;
+          if (!check && !((myPiecesMask | ennemyPiecesMask | ennemyControl) & mask00)) {
+            res |= 1ULL<<(pos+2);
+          }
+        }
+        if (possible000[whiteMove]){
+          uint64_t mask000 = whiteMove ? 0xCULL : 0xC00000000000000ULL;
+          uint64_t blockerMask = (myPiecesMask | ennemyPiecesMask) & (mask000 | (1ULL << (pos-3)));
+          if (!check && !(ennemyControl & mask000) && !blockerMask) {
+            res |= 1ULL << (pos-2);
+          }
+        }
+      }
     }
     return res;
   }
@@ -236,26 +264,42 @@ namespace Position {
         int to = Tools::getLastBitIndex(moves);
         moves &= (moves - 1);
         bool capture = (ennemyPiecesMask >> to) & 1ULL;
-        pieceType captured = capture ? ennemyPieces[to] : EMPTY;
-        legalMoves[index] = Move(from, to, capture, captured);
+        
+        pieceType captured = ennemyPieces[to];
+        if (piece==PAWN) {
+          if (to == enPassant) {
+            legalMoves[index] = Move(from, to, true, PAWN, true);
+          } else if (to/8==0 || to/8==7) {
+            legalMoves[index] = Move(from, to, capture, captured, false, false, false, true, QUEEN);
+            legalMoves[index+1] = Move(from, to, capture, captured, false, false, false, true, ROOK);
+            legalMoves[index+2] = Move(from, to, capture, captured, false, false, false, true, BISHOP);
+            legalMoves[index+3] = Move(from, to, capture, captured, false, false, false, true, KNIGHT);
+            index += 3;
+          } else {
+            legalMoves[index] = Move(from, to, capture, captured);
+          }
+        } else if (piece==KING && abs(from-to)==2) {
+          bool is00 = to>from;
+          legalMoves[index] = Move(from, to, false, EMPTY, false, is00, !is00);
+        } else {
+          legalMoves[index] = Move(from, to, capture, captured);
+        }
         index++;
       }
     }
     legalMoves[index] = Move();
   }
 
-void updateControl() {
-  myControl = 0;
-  uint64_t mask = myPiecesMask;
-  while(mask){
-    int from = Tools::getLastBitIndex(mask);
-    mask &= (mask - 1);
-    pieceType piece = myPieces[from];
-    myControl |= getMoves(piece, from, whiteMove, true);
+  void updateControl() {
+    myControl = 0;
+    uint64_t mask = myPiecesMask;
+    while(mask){
+      int from = Tools::getLastBitIndex(mask);
+      mask &= (mask - 1);
+      pieceType piece = myPieces[from];
+      myControl |= getMoves(piece, from, whiteMove, true);
+    }
   }
-}
-
-
 
 
   void init(std::string fen){
@@ -267,6 +311,8 @@ void updateControl() {
       ennemyPieces[i] = EMPTY;
       pinsMasks[i] = 0;
     }
+    checkers[0] = 0;
+    checkers[1] = 1;
 
     pieceType* pieceMap = new pieceType[26];
     pieceMap['p'-'a'] = pieceType(PAWN);
@@ -338,9 +384,9 @@ void updateControl() {
 
     index++;
     if (fen[index] == '-'){
-      enPassantPossible = -1;
+      enPassant = -1;
     } else {
-      enPassantPossible = Tools::toIndexPos(fen.substr(index, index+1));
+      enPassant = Tools::toIndexPos(fen.substr(index, index+1));
       index++;
     }
     std::string movesCountString = fen.substr(index+2, fen.length());
@@ -382,43 +428,80 @@ void updateControl() {
     delete[] ennemyPieces;
   }
 
+  void updateCastling(int fromRook, int toRook) {
+    myPieces[toRook] = myPieces[fromRook];
+    myPieces[fromRook] = EMPTY;
+    myPiecesMask = (myPiecesMask & ~(1ULL<<fromRook)) | (1ULL<<toRook);
+  }
 
   void movePiece(Move move){
+    auto removeCastling = [](int posRook, bool white) {
+      if (posRook%8 == 0) {
+        possible000[white] = false;
+      } else if (posRook%8 == 7) {
+        possible00[white] = false;
+      }
+    };
+
+    SavePos current = SavePos(move, myControl, ennemyControl, pins, pinsMasks, legalMoves, possible00, possible000, enPassant, halfMovesSinceReset, check, checkers, blockCheck);
+    previousPos.push(current);
+    
     int from = move.getFrom();
     int to = move.getTo();
     
-    myPieces[to] = myPieces[from];
+    pieceType piece = myPieces[from];
+    myPieces[to] = piece;
     myPieces[from] = EMPTY;
     myPiecesMask = (myPiecesMask & ~(1ULL<<from)) | (1ULL<<to);
-    if (myPieces[to] == PAWN){
-      myPawnsMask = (myPawnsMask & ~(1ULL<<from)) | (1ULL<<to);
+    enPassant = -1;
+    if (piece == PAWN){
+      if (move.isPromotion()) {
+        pieceType promotion = move.getPromotion();
+        myPieces[to] = promotion;
+        myPawnsMask &= ~(1ULL<<from);
+      } else {
+        myPawnsMask = (myPawnsMask & ~(1ULL<<from)) | (1ULL<<to);
+        int dir = whiteMove ? 1 : -1;
+        enPassant = (abs(to-from) == 16) ? from+8*dir : -1;
+      }
+    } else if (piece == KING) {
+      myKingPos = to;
+      possible000[whiteMove] = false;
+      possible00[whiteMove] = false;
+
+      if (move.is00()) {
+        updateCastling(from+3, to-1);
+      } else if (move.is000()) {
+        updateCastling(from-4, to+1);
+      }
+    } else if (piece == ROOK) {
+      removeCastling(from, whiteMove);
     }
 
     if (move.isCapture()){
-      ennemyPieces[to] = EMPTY;
-      ennemyPiecesMask &= ~(1ULL<<to);
-      if (move.getCapturedPiece() == PAWN){
-        ennemyPawnsMask &= ~(1ULL<<to);
+      int pop = move.isEnPassant() ? (to + (whiteMove ? -8 : 8)) : to;
+      ennemyPieces[pop] = EMPTY;
+      ennemyPiecesMask &= ~(1ULL<<pop);
+      pieceType captured = move.getCapturedPiece();
+      if (captured == PAWN){
+        ennemyPawnsMask &= ~(1ULL<<pop);
+      } else if (captured == ROOK) {
+        
+        removeCastling(to, !whiteMove);
       }
     }
 
-    uint64_t control = getMoves(myPieces[to], to, whiteMove, true);
+    uint64_t control = getMoves(piece, to, whiteMove, true);
     check = control & (1ULL<<ennemyKingPos);
+    checkers[1] = -1;
     if (check){
       checkers[0] = to;
-      checkers[1] = -1;
     }
 
     updateControl();
-
     updatePins();
     updateChecks();
-
-    SavePos current = SavePos(move, myControl, ennemyControl, pins, pinsMasks, legalMoves, possible00, possible000, enPassantPossible, halfMovesSinceReset, check, checkers, blockCheck);
-    previousPos.push(current);
-
     swap();
-
     updateAllMoves();
   }
 
@@ -439,7 +522,7 @@ void updateControl() {
     possible00[1] = current.possible00[1];
     possible000[0] = current.possible000[0];
     possible000[1] = current.possible000[1];
-    enPassantPossible = current.enPassantPossible;
+    enPassant = current.enPassant;
     halfMovesSinceReset = current.halfMovesSinceReset;
     check = current.check;
     checkers[0] = current.checkers[0];
@@ -448,7 +531,11 @@ void updateControl() {
     Move move = current.currentMove;
     int from = move.getFrom();
     int to = move.getTo();
-    myPieces[from] = myPieces[to];
+    if (move.isPromotion()) {
+      myPieces[from] = PAWN;
+    } else {
+      myPieces[from] = myPieces[to];
+    }
     myPieces[to] = EMPTY;
     myPiecesMask = (myPiecesMask & ~(1ULL<<to)) | (1ULL<<from);
     if (myPieces[from] == PAWN){
@@ -457,35 +544,53 @@ void updateControl() {
       myKingPos = from;
     }
 
+    if (move.is00()) {
+      updateCastling(to-1, from+3);
+    } else if (move.is000()) {
+      updateCastling(to+1, from-4);
+    }
+
     pieceType captured = move.getCapturedPiece();
-    ennemyPieces[to] = captured;
+    int pop = move.isEnPassant() ? (to + (whiteMove ? -8 : 8)) : to;
+    ennemyPieces[pop] = captured;
     bool capture = move.isCapture();
     if (capture) {
-      ennemyPiecesMask |= 1ULL<<to;
+      ennemyPiecesMask |= 1ULL<<pop;
       if (captured == PAWN) {
-        ennemyPawnsMask |= 1ULL<<to;
+        ennemyPawnsMask |= 1ULL<<pop;
       }
     }
     //delete &current;
   }
 
+  void printPos() {
+    std::cout << "White move : " << whiteMove << std::endl;
+    std::cout << "Check : " << check << std::endl;
+    std::cout << "000 : " << possible000[0] << " " << possible000[1] << std::endl;
+
+    printBitboard(myPiecesMask);
+    printBitboard(ennemyPiecesMask);
+  }
+
   int getAllComb(int initialDepth, int depth, bool print) {
     if (depth==0) {
       return 1;
-    } else {
-      //Move moveTest = Move(Tools::squareToInt("a7"), Tools::squareToInt("a6"), false);
-      
+    } else {      
       int res = 0;
       int index = 0;
       Move move = legalMoves[index];
       while (move.value != 0) {
-        //bool printNext = move.value == moveTest.value && depth == initialDepth-1 && ennemyPieces[Tools::squareToInt("h4")]==PAWN;
+        bool found = false;
 
         movePiece(move);
+
         int add = getAllComb(initialDepth, depth - 1, false);
         res += add;
         undoMove();
 
+        if (found) {
+          initialDepth++;
+        }
         
         if (depth==initialDepth) {
           std::cout << move.toString() << " -> " << add << std::endl;

@@ -1,6 +1,6 @@
 OUTPUT = exec
 
-SOURCES = main.cpp position.cpp bitboard.cpp tools.cpp typesdef.h
+SOURCES = main.cpp position.cpp bitboard.cpp tools.cpp typesdef.h search.cpp
 
 CC = g++
 

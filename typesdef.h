@@ -8,4 +8,5 @@ enum pinType {RANK, DIAG, FREE};
 
 
 
+
 #endif

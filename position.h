@@ -17,16 +17,23 @@ namespace Position {
   extern const int NORTH_WEST;
   extern const int SOUTH_WEST;
 
+  
+
 
   struct Move {
     uint64_t value;
     Move(uint64_t initialValue) {
       value = initialValue;
     }
-    Move(int from, int to, bool capture, pieceType captured=EMPTY){
+    Move(int from, int to, bool capture, pieceType captured=EMPTY, bool enPassant=false, bool is00=false, bool is000=false, bool isPromotion=false, pieceType promotionPiece=EMPTY){
       value = from | (to << 6);
       value |= capture << 12;
       value |= static_cast<uint64_t>(captured) << 13;
+      value |= enPassant << 16;
+      value |= is00 << 17;
+      value |= is000 << 18;
+      value |= isPromotion << 19;
+      value |= static_cast<uint64_t>(promotionPiece) << 20;
     }
     Move(){
       value = 0;
@@ -44,10 +51,25 @@ namespace Position {
     pieceType getCapturedPiece(){
       return static_cast<pieceType>((value >> 13) & 0b111ULL);
     }
+    bool isEnPassant(){
+      return (value >> 16) & 1ULL;
+    }
+    bool is00(){
+      return (value >> 17) & 1ULL;
+    }
+    bool is000(){
+      return (value >> 18) & 1ULL;
+    }
+    bool isPromotion(){
+      return (value >> 19) & 1ULL;
+    }
+    pieceType getPromotion(){
+      return static_cast<pieceType>((value >> 20) & 0b111ULL);
+    }
 
     std::string toString(){
-      std::string capture = isCapture() ? " x " : " ";
-      return Tools::toSquare(getFrom()) + capture + Tools::toSquare(getTo());
+      //std::string capture = isCapture() ? " x " : " ";
+      return Tools::toSquare(getFrom()) + Tools::toSquare(getTo());
     }
   };
 
@@ -59,14 +81,14 @@ namespace Position {
     Move* legalMoves;
     bool possible00[2];
     bool possible000[2];
-    int enPassantPossible;
+    int enPassant;
     int halfMovesSinceReset;
     Move currentMove;
     bool check;
     int checkers[2];
     uint64_t blockCheck;
     
-    SavePos(Move move, uint64_t myControl, uint64_t ennemyControl, uint64_t pins, uint64_t* pinsMasks, Move* legalMoves, bool possible00[2], bool possible000[2], int enPassantPossible, int halfMovesSinceReset,
+    SavePos(Move move, uint64_t myControl, uint64_t ennemyControl, uint64_t pins, uint64_t* pinsMasks, Move* legalMoves, bool possible00[2], bool possible000[2], int enPassant, int halfMovesSinceReset,
           bool check, int checkers[2], uint64_t blockCheck){
       this->myControl = myControl;
       this->ennemyControl = ennemyControl;
@@ -75,7 +97,7 @@ namespace Position {
       this->possible00[1] = possible00[1];
       this->possible000[0] = possible000[0];
       this->possible000[1] = possible000[1];
-      this->enPassantPossible = enPassantPossible;
+      this->enPassant = enPassant;
       this->halfMovesSinceReset = halfMovesSinceReset;
       this->currentMove = move;
       this->check = check;
@@ -102,9 +124,14 @@ namespace Position {
       this->possible00[1] = other.possible00[1];
       this->possible000[0] = other.possible000[0];
       this->possible000[1] = other.possible000[1];
-      this->enPassantPossible = other.enPassantPossible;
+      this->enPassant = other.enPassant;
       this->halfMovesSinceReset = other.halfMovesSinceReset;
       this->currentMove = other.currentMove;
+      this->checkers[0] = other.checkers[0];
+      this->checkers[1] = other.checkers[1];
+      this->check = other.check;
+      this->blockCheck = other.blockCheck;
+
       
       // Allocate new memory and copy data for legalMoves and pinsMasks
       this->legalMoves = new Move[Tools::MAX_LEGAL_MOVES];
@@ -125,11 +152,20 @@ namespace Position {
     }
   };
 
+  bool getWhiteMove();
+  Move* getLegalMoves();
+  bool getCheck();
+  pieceType* getMyPieces();
+  pieceType* getEnnemyPieces();
+
+
   void printBitboard(uint64_t bitboard);
   uint64_t getMoves(pieceType piece, int pos, bool isWhite, bool getControl);
   void init(std::string fen);
   void movePiece(Move move);
+  void undoMove();
   void free();
   int getAllComb(int initialDepth, int depth=0, bool print=false);
+  void printPos();
   
 }
