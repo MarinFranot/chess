@@ -17,6 +17,7 @@ namespace Tools {
   int toIndexPos(std::string square);
   std::string toSquare(int pos);
   int squareToInt(std::string str);
+  bool startswith(const char *pre, const char *str);
   
   uint64_t* getPiecesMovesMask(pieceType piece, bool white=true);
   uint64_t* getLineMasks(bool isRank);

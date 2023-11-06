@@ -6,6 +6,7 @@
 #include "typesdef.h"
 #include "tools.h"
 
+namespace Chess {
 namespace Position {
   extern const int boardSize;
   extern const int EAST;
@@ -152,11 +153,11 @@ namespace Position {
     }
   };
 
-  bool getWhiteMove();
-  Move* getLegalMoves();
-  bool getCheck();
-  pieceType* getMyPieces();
-  pieceType* getEnnemyPieces();
+  extern bool whiteMove;
+  extern Move* legalMoves;
+  extern bool check;
+  extern pieceType* myPieces;
+  extern pieceType* ennemyPieces;
 
 
   void printBitboard(uint64_t bitboard);
@@ -168,4 +169,5 @@ namespace Position {
   int getAllComb(int initialDepth, int depth=0, bool print=false);
   void printPos();
   
+}
 }

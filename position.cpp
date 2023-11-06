@@ -4,7 +4,7 @@
 
 #include "position.h"
 
-
+namespace Chess {
 namespace Position {
   extern const int boardSize = 8;
   extern const int EAST = 1;
@@ -83,22 +83,6 @@ namespace Position {
   }
   uint64_t getColMask(int pos){
     return colMasks[pos%8];
-  }
-
-  bool getWhiteMove() {
-    return whiteMove;
-  }
-  Move* getLegalMoves() {
-    return legalMoves;
-  }
-  bool getCheck() {
-    return check;
-  }
-  pieceType* getMyPieces() {
-    return myPieces;
-  }
-  pieceType* getEnnemyPieces() {
-    return ennemyPieces;
   }
 
 
@@ -602,5 +586,4 @@ namespace Position {
     }
   }
 }
-
-
+}

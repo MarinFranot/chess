@@ -1,26 +1,35 @@
 #include <iostream>
 #include <cmath>
 #include <chrono>
+#include <string>
+
+
 
 
 #include "position.h"
 #include "bitboard.h"
 #include "search.h"
+#include "tools.h"
+
 
 
 int main(int argc, char* argv[]) {
-  std::string argument = argv[1];
+  std::string fenInit = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+  Chess::Position::init(fenInit);
+  Chess::Search::init();
+  
 
-  std::string fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-  Position::init(fen);
 
-
-  if (argument == "writeTable"){
+  if (argc >= 2 && strcmp(argv[1], "writeTable") == 0) {
     bool isRook = false;
     uint64_t obj = isRook ? std::pow(2, 14)-1 : 1023;
-    Bitboard::generateLongTable(obj, isRook);
+    Chess::Bitboard::generateLongTable(obj, isRook);
+
+    Chess::Position::free();
+    Chess::Search::free();
+    return 0;
   }
-  else if (argument == "perf") {
+  else if (argc >= 2 && strcmp(argv[1], "perf") == 0) {
 
     //std::string fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     int correct[7] = {1, 20, 400, 8902, 197281, 4865609, 119060324};
@@ -34,7 +43,7 @@ int main(int argc, char* argv[]) {
     auto start = std::chrono::high_resolution_clock::now();
 
     int depth = 5;
-    int nbComb = Position::getAllComb(depth, depth);
+    int nbComb = Chess::Position::getAllComb(depth, depth);
     if (nbComb != correct[depth]) {
       std::cout << "WRONG number of combinations for depth " << depth << " -> " << nbComb << std::endl;
       std::cout << "Expected : " << correct[depth] << std::endl;
@@ -45,27 +54,33 @@ int main(int argc, char* argv[]) {
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop-start);
     std::cout << "Time taken by function: " << duration.count() << " milliseconds" << std::endl;
-  } else if (argument == "search") {
-    int depth = 5;
+
+    Chess::Position::free();
+    Chess::Search::free();
+    return 0;
+  }
+  else if (argc >= 2 && strcmp(argv[1], "search") == 0) {
+    int depth = 8;
     int alpha = -100000;
     int beta = 100000;
+    int nbEval = 0;
 
     auto start = std::chrono::high_resolution_clock::now();
-    int score = Search::search(depth, alpha, beta);
-    Position::Move best = Search::getBest();
+    int score = Chess::Search::search(depth, depth, alpha, beta, nbEval);
+    Chess::Position::Move best = Chess::Search::getBest();
     auto stop = std::chrono::high_resolution_clock::now();
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop-start);
     std::cout << "Time taken by function: " << duration.count() << " milliseconds" << std::endl;
     std::cout << "Score : " << score << std::endl;
     std::cout << "Best move : " << best.toString() << std::endl;
+    std::cout << "Number of evaluations : " << nbEval << std::endl;
 
+    Chess::Position::free();
+    Chess::Search::free();
+    return 0;
   }
-  else {
-    std::cout << "Error: invalid argument " << argv[1] << std::endl;
-  }
-  Position::free();
-
+  
   return 0;
 }
 

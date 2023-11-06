@@ -11,6 +11,7 @@
 #include "tools.h"
 
 
+namespace Chess {
 namespace Bitboard{
 
   uint64_t getMoves(int pos, uint64_t pieces, bool isRook, bool restriction){
@@ -167,9 +168,5 @@ namespace Bitboard{
     }
     outFile.close();
   }
-
-  
-
-
-
+}
 }

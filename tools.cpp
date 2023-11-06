@@ -2,6 +2,7 @@
 #include <cmath>
 #include <fstream>
 #include <string>
+#include <cstring>
 
 #include "tools.h"
 
@@ -47,7 +48,6 @@ namespace Tools {
   int squareToInt(std::string str) {
     return (str[1] - '1')*8 + (str[0] - 'a');
   }
-
 
 
   uint64_t* getLineMasks(bool isRank){

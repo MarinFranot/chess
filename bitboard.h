@@ -1,6 +1,7 @@
 #pragma once
 #include <iostream>
 
+namespace Chess {
 namespace Bitboard {
 
   uint64_t getMoves(int pos, uint64_t pieces, bool isRook, bool restriction=false);
@@ -9,4 +10,5 @@ namespace Bitboard {
   bool isUnique(uint64_t* picecsComb, int arrsize);
   void generateLongTable(uint64_t obj, bool isRook);
   
+}
 }
