@@ -30,6 +30,9 @@ int main(int argc, char* argv[]) {
     return 0;
   }
   else if (argc >= 2 && strcmp(argv[1], "perf") == 0) {
+    const std::string red = "\033[1;31m";
+    const std::string green = "\033[1;32m";
+    const std::string reset = "\033[0m";
 
     //std::string fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     int correct[7] = {1, 20, 400, 8902, 197281, 4865609, 119060324};
@@ -42,13 +45,13 @@ int main(int argc, char* argv[]) {
 
     auto start = std::chrono::high_resolution_clock::now();
 
-    int depth = 5;
+    int depth = 6;
     int nbComb = Chess::Position::getAllComb(depth, depth);
     if (nbComb != correct[depth]) {
-      std::cout << "WRONG number of combinations for depth " << depth << " -> " << nbComb << std::endl;
+      std::cout << red << "WRONG" << reset << " Number of combinations for depth " << depth << " -> " << nbComb << std::endl;
       std::cout << "Expected : " << correct[depth] << std::endl;
     }else {
-      std::cout << "OK Number of combinations for depth " << depth << " : " << nbComb << std::endl;
+      std::cout << green << "OK" << reset << " Number of combinations for depth " << depth << " : " << nbComb << std::endl;
     }
 
     auto stop = std::chrono::high_resolution_clock::now();

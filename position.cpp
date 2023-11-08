@@ -559,7 +559,16 @@ namespace Position {
   int getAllComb(int initialDepth, int depth, bool print) {
     if (depth==0) {
       return 1;
-    } else {      
+    } else if (depth == 1) {
+      int res = 0;
+      Move move = legalMoves[res];
+      while (move.value != 0) {
+        res++;
+        move = legalMoves[res];
+      }
+      return res;
+    }
+    else {      
       int res = 0;
       int index = 0;
       Move move = legalMoves[index];

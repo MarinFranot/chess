@@ -153,6 +153,59 @@ namespace Position {
     }
   };
 
+  struct Pos {
+    pieceType* myPieces;
+    pieceType* ennemyPieces;
+    uint64_t* myPiecesMask;
+    uint64_t* ennemyPiecesMask;
+    uint64_t myPawnsMask;
+    uint64_t ennemyPawnsMask;
+    int myKingPos;
+    int ennemyKingPos;
+    std::stack<SavePos> history;
+
+    Pos() {
+      myPieces = new pieceType[64];
+      ennemyPieces = new pieceType[64];
+      myPiecesMask = new uint64_t[64];
+      ennemyPiecesMask = new uint64_t[64];
+    }
+    Pos(const Pos& other) {
+      // Perform a deep copy of the data members
+      this->myPawnsMask = other.myPawnsMask;
+      this->ennemyPawnsMask = other.ennemyPawnsMask;
+      this->myKingPos = other.myKingPos;
+      this->ennemyKingPos = other.ennemyKingPos;
+
+      // Allocate new memory and copy data
+      this->myPieces = new pieceType[64];
+      std::memcpy(this->myPieces, other.myPieces, 64 * sizeof(pieceType));
+      this->ennemyPieces = new pieceType[64];
+      std::memcpy(this->ennemyPieces, other.ennemyPieces, 64 * sizeof(pieceType));
+      this->myPiecesMask = new uint64_t[64];
+      std::memcpy(this->myPiecesMask, other.myPiecesMask, 64 * sizeof(uint64_t));
+      this->ennemyPiecesMask = new uint64_t[64];
+      std::memcpy(this->ennemyPiecesMask, other.ennemyPiecesMask, 64 * sizeof(uint64_t));
+    }
+
+    ~Pos() {
+      if (this->myPieces != NULL) {
+        delete[] this->myPieces;
+      }
+      if (this->ennemyPieces != NULL) {
+        delete[] this->ennemyPieces;
+      }
+      if (this->myPiecesMask != NULL) {
+        delete[] this->myPiecesMask;
+      }
+      if (this->ennemyPiecesMask != NULL) {
+        delete[] this->ennemyPiecesMask;
+      }
+    }
+
+    
+  };
+
   extern bool whiteMove;
   extern Move* legalMoves;
   extern bool check;
