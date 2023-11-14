@@ -49,6 +49,55 @@ namespace Tools {
     return (str[1] - '1')*8 + (str[0] - 'a');
   }
 
+  bool endsWith(const char* line, const char* suffix) {
+    size_t lineLength = strlen(line);
+    size_t suffixLength = strlen(suffix);
+
+    if (lineLength < suffixLength) {
+        return false;
+    }
+
+    return strcmp(line + lineLength - suffixLength, suffix) == 0;
+  }
+
+  bool isMove(const char* line) {
+    auto isValid = [](const char* subline) {
+      bool valid = (subline[0] >= 'a' && subline[0] <= 'h') &&
+                   (subline[1] >= '1' && subline[1] <= '8') &&
+                   (subline[2] >= 'a' && subline[2] <= 'h') &&
+                   (subline[3] >= '1' && subline[3] <= '8');
+      return valid;
+    };
+    size_t lineLength = strlen(line);
+    if (lineLength < 6) {
+      return false;
+    }
+    const char* subline = line + lineLength - 6;
+    
+    if (subline[0] == ' ') {
+      return isValid(subline + 1);
+    } else {
+      char p = subline[5];
+      return isValid(subline) && (p == 'q' || p == 'r' || p == 'b' || p == 'n');
+    }
+  }
+  pieceType toPieceType(char c) {
+    switch (c) {
+      case 'q':
+        return QUEEN;
+      case 'r':
+        return ROOK;
+      case 'b':
+        return BISHOP;
+      case 'n':
+        return KNIGHT;
+      default:
+        return EMPTY;
+    }
+  }
+
+
+  /////GENERATION////////
 
   uint64_t* getLineMasks(bool isRank){
     uint64_t* res = new uint64_t[8];
@@ -75,13 +124,14 @@ namespace Tools {
   }
 
   uint64_t** getTable(bool isRook, uint64_t* magicNbs, int* shifts){
-    std::ifstream file(isRook ? "rookTable.txt" : "bishopTable.txt");
-    if (!file.is_open()) {
-        throw std::runtime_error("Failed to open the file.");
+    const char* filename = isRook ? "rookTable.txt" : "bishopTable.txt";
+    FILE* file = fopen(filename, "r");
+    if (!file) {
+        perror("Failed to open the file");
     }
 
-    std::string line;
-    std::getline(file, line);
+    char line[256];
+    fgets(line, sizeof(line), file);
     uint64_t** table = new uint64_t*[64];
     for (int i = 0; i < 64; i++) {
       table[i] = nullptr;
@@ -90,23 +140,26 @@ namespace Tools {
     }
     int pos = 0;
     auto getNb = [](std::string line){
-      
       return std::stoi(line.substr(0, line.find(" ")));
     };
-     while (std::getline(file, line)) {
+     while (fgets(line, sizeof(line), file)) {
 
-      std::getline(file, line);
-      int nbComb = getNb(line);
+      fgets(line, sizeof(line), file);
+      std::string lineString(line);
+      int nbComb = getNb(lineString);
 
-      std::getline(file, line);
-      int maxi = getNb(line);
+      fgets(line, sizeof(line), file);
+      lineString = std::string(line);
+      int maxi = getNb(lineString);
 
-      std::getline(file, line);
-      uint64_t magicNb = std::stoull(line.substr(0, line.find(" ")));
+      fgets(line, sizeof(line), file);
+      lineString = std::string(line);
+      uint64_t magicNb = std::stoull(lineString.substr(0, lineString.find(" ")));
       magicNbs[pos] = magicNb;
 
-      std::getline(file, line);
-      shifts[pos] = getNb(line);
+      fgets(line, sizeof(line), file);
+      lineString = std::string(line);
+      shifts[pos] = getNb(lineString);
 
       table[pos] = new uint64_t[maxi+1];
       for (int i=0; i<=maxi; i++){
@@ -114,15 +167,16 @@ namespace Tools {
       }
       
       for (int j=0; j<nbComb; j++){
-        std::getline(file, line);
-        int idx = getNb(line);
-        uint64_t mask = std::stoull(line.substr(line.find(" ")+1, line.length()));
+        fgets(line, sizeof(line), file);
+        lineString = std::string(line);
+        int idx = getNb(lineString);
+        uint64_t mask = std::stoull(lineString.substr(lineString.find(" ")+1, lineString.length()));
         table[pos][idx] = mask;
       }
       pos++;
       
     }
-    file.close();
+    fclose(file);
     return table;
   }
 

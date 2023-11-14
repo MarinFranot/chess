@@ -1,14 +1,15 @@
 #pragma once
 
 #include <cstring>
-#include <stack>
+#include <iostream>
+#include <thread>
+#include <vector>
 
 #include "typesdef.h"
 #include "tools.h"
 
 namespace Chess {
 namespace Position {
-  extern const int boardSize;
   extern const int EAST;
   extern const int WEST;
   extern const int NORTH;
@@ -18,15 +19,14 @@ namespace Position {
   extern const int NORTH_WEST;
   extern const int SOUTH_WEST;
 
-  
-
 
   struct Move {
     uint64_t value;
     Move(uint64_t initialValue) {
       value = initialValue;
     }
-    Move(int from, int to, bool capture, pieceType captured=EMPTY, bool enPassant=false, bool is00=false, bool is000=false, bool isPromotion=false, pieceType promotionPiece=EMPTY){
+    Move(int from, int to, bool capture, pieceType captured=EMPTY, bool enPassant=false,
+     bool is00=false, bool is000=false, bool isPromotion=false, pieceType promotionPiece=EMPTY){
       value = from | (to << 6);
       value |= capture << 12;
       value |= static_cast<uint64_t>(captured) << 13;
@@ -72,6 +72,7 @@ namespace Position {
       //std::string capture = isCapture() ? " x " : " ";
       return Tools::toSquare(getFrom()) + Tools::toSquare(getTo());
     }
+
   };
 
   struct SavePos {
@@ -88,33 +89,18 @@ namespace Position {
     bool check;
     int checkers[2];
     uint64_t blockCheck;
-    
-    SavePos(Move move, uint64_t myControl, uint64_t ennemyControl, uint64_t pins, uint64_t* pinsMasks, Move* legalMoves, bool possible00[2], bool possible000[2], int enPassant, int halfMovesSinceReset,
-          bool check, int checkers[2], uint64_t blockCheck){
-      this->myControl = myControl;
-      this->ennemyControl = ennemyControl;
-      this->pins = pins;
-      this->possible00[0] = possible00[0];
-      this->possible00[1] = possible00[1];
-      this->possible000[0] = possible000[0];
-      this->possible000[1] = possible000[1];
-      this->enPassant = enPassant;
-      this->halfMovesSinceReset = halfMovesSinceReset;
-      this->currentMove = move;
-      this->check = check;
-      this->checkers[0] = checkers[0];
-      this->checkers[1] = checkers[1];
-      this->blockCheck = blockCheck;
-      
-      //copy legalMoves array
-      this->legalMoves = new Move[Tools::MAX_LEGAL_MOVES];
-      std::memcpy(this->legalMoves, legalMoves, Tools::MAX_LEGAL_MOVES*sizeof(Move));
-      this->pinsMasks = new uint64_t[64];
-      std::memcpy(this->pinsMasks, pinsMasks, 64*sizeof(uint64_t));
-    }
-    SavePos() {
-      this->legalMoves = new Move[Tools::MAX_LEGAL_MOVES];
-      this->pinsMasks = new uint64_t[64];
+    int nbLegalMoves;
+
+    SavePos() : myControl(0), ennemyControl(0), pins(0), possible00{false, false}, possible000{false, false},
+     enPassant(-1), halfMovesSinceReset(0), currentMove(Move()), check(false), checkers{-1, -1}, blockCheck(UINT64_MAX), nbLegalMoves(0) {
+      legalMoves = new Move[Tools::MAX_LEGAL_MOVES];
+      pinsMasks = new uint64_t[64];
+      for(int i=0; i<Tools::MAX_LEGAL_MOVES; i++){
+        legalMoves[i] = Move();
+        if (i<64){
+          pinsMasks[i] = 0;
+        }
+      }
     }
     SavePos(const SavePos& other) {
       // Perform a deep copy of the data members
@@ -132,6 +118,7 @@ namespace Position {
       this->checkers[1] = other.checkers[1];
       this->check = other.check;
       this->blockCheck = other.blockCheck;
+      this->nbLegalMoves = other.nbLegalMoves;
 
       
       // Allocate new memory and copy data for legalMoves and pinsMasks
@@ -143,32 +130,43 @@ namespace Position {
 
 
     ~SavePos() {
-      if (this->legalMoves != NULL) {
-        delete[] this->legalMoves;
-      }
-      if (this->pinsMasks != NULL) {
-        delete[] this->pinsMasks;
-      }
-
+      delete[] this->legalMoves;
+      delete[] this->pinsMasks;
     }
   };
 
   struct Pos {
     pieceType* myPieces;
     pieceType* ennemyPieces;
-    uint64_t* myPiecesMask;
-    uint64_t* ennemyPiecesMask;
+    uint64_t myPiecesMask;
+    uint64_t ennemyPiecesMask;
     uint64_t myPawnsMask;
     uint64_t ennemyPawnsMask;
     int myKingPos;
     int ennemyKingPos;
-    std::stack<SavePos> history;
+    SavePos** history;
+    SavePos* currentPos;
+    bool whiteMove;
+    int indexHistory;
+    int historySize = 100;
 
     Pos() {
       myPieces = new pieceType[64];
       ennemyPieces = new pieceType[64];
-      myPiecesMask = new uint64_t[64];
-      ennemyPiecesMask = new uint64_t[64];
+      for (int i=0; i<64; i++){
+        myPieces[i] = EMPTY;
+        ennemyPieces[i] = EMPTY;
+      }
+      currentPos = new SavePos();
+      myPiecesMask = 0;
+      ennemyPiecesMask = 0;
+      myPawnsMask = 0;
+      ennemyPawnsMask = 0;
+      myKingPos = 0;
+      ennemyKingPos = 0;
+      whiteMove = true;
+      indexHistory = 0;
+      history = new SavePos*[historySize];
     }
     Pos(const Pos& other) {
       // Perform a deep copy of the data members
@@ -176,51 +174,59 @@ namespace Position {
       this->ennemyPawnsMask = other.ennemyPawnsMask;
       this->myKingPos = other.myKingPos;
       this->ennemyKingPos = other.ennemyKingPos;
+      this->whiteMove = other.whiteMove;
+      this->myPiecesMask = other.myPiecesMask;
+      this->ennemyPiecesMask = other.ennemyPiecesMask;
+      this->currentPos = new SavePos(*other.currentPos);
+      this->indexHistory = other.indexHistory;
 
-      // Allocate new memory and copy data
       this->myPieces = new pieceType[64];
       std::memcpy(this->myPieces, other.myPieces, 64 * sizeof(pieceType));
       this->ennemyPieces = new pieceType[64];
       std::memcpy(this->ennemyPieces, other.ennemyPieces, 64 * sizeof(pieceType));
-      this->myPiecesMask = new uint64_t[64];
-      std::memcpy(this->myPiecesMask, other.myPiecesMask, 64 * sizeof(uint64_t));
-      this->ennemyPiecesMask = new uint64_t[64];
-      std::memcpy(this->ennemyPiecesMask, other.ennemyPiecesMask, 64 * sizeof(uint64_t));
+
+      //copy history
+      this->history = new SavePos*[historySize];
+      for (int i=0; i<historySize; i++){
+        this->history[i] = other.history[i];
+      }
+
     }
 
     ~Pos() {
-      if (this->myPieces != NULL) {
-        delete[] this->myPieces;
-      }
-      if (this->ennemyPieces != NULL) {
-        delete[] this->ennemyPieces;
-      }
-      if (this->myPiecesMask != NULL) {
-        delete[] this->myPiecesMask;
-      }
-      if (this->ennemyPiecesMask != NULL) {
-        delete[] this->ennemyPiecesMask;
+      delete[] this->myPieces;
+      delete[] this->ennemyPieces;
+      delete this->currentPos;
+      delete[] this->history;
+    }
+
+    void pushHistory() {
+      history[indexHistory] = new SavePos(*currentPos);
+      indexHistory = (indexHistory + 1) % historySize;
+    }
+    void popHistory() {
+      delete currentPos;
+      indexHistory = (indexHistory - 1) % historySize;
+      currentPos = history[indexHistory];
+    }
+    void freeHistory() {
+      for(int i=0; i<indexHistory%historySize; i++) {
+        delete history[i];
       }
     }
 
-    
   };
 
-  extern bool whiteMove;
-  extern Move* legalMoves;
-  extern bool check;
-  extern pieceType* myPieces;
-  extern pieceType* ennemyPieces;
 
-
+  void createTables();
   void printBitboard(uint64_t bitboard);
-  uint64_t getMoves(pieceType piece, int pos, bool isWhite, bool getControl);
-  void init(std::string fen);
-  void movePiece(Move move);
-  void undoMove();
+  uint64_t getMoves(Pos &pos, pieceType piece, int from, bool isWhite, bool getControl);
+  Pos init(Pos &pos, std::string fen);
+  void movePiece(Pos &pos, Move move);
+  void undoMove(Pos& pos);
   void free();
-  int getAllComb(int initialDepth, int depth=0, bool print=false);
-  void printPos();
+  int getAllComb(Pos &pos, int initialDepth, int depth=0, const int nbThreads=1, int mini=0, int maxi=Tools::MAX_LEGAL_MOVES);
+  void printPos(Pos pos);
   
 }
 }

@@ -2,23 +2,18 @@
 #include <cmath>
 #include <chrono>
 #include <string>
-
-
-
+#include <cstring>
+#include <fstream>
 
 #include "position.h"
 #include "bitboard.h"
 #include "search.h"
 #include "tools.h"
+#include "uci.h"
 
 
 
 int main(int argc, char* argv[]) {
-  std::string fenInit = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-  Chess::Position::init(fenInit);
-  Chess::Search::init();
-  
-
 
   if (argc >= 2 && strcmp(argv[1], "writeTable") == 0) {
     bool isRook = false;
@@ -30,11 +25,14 @@ int main(int argc, char* argv[]) {
     return 0;
   }
   else if (argc >= 2 && strcmp(argv[1], "perf") == 0) {
+    Chess::Position::Pos pos = Chess::Position::Pos();
+    Chess::Position::createTables();
+    Chess::Position::init(pos, fenInit);
+    Chess::Search::init();
     const std::string red = "\033[1;31m";
     const std::string green = "\033[1;32m";
     const std::string reset = "\033[0m";
 
-    //std::string fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     int correct[7] = {1, 20, 400, 8902, 197281, 4865609, 119060324};
 
     //std::string fen = "rnb1kb1r/ppp1pppp/5n2/q7/2B5/2N2N2/PPPP1PPP/R1BQK2R b KQkq - 5 5";
@@ -45,8 +43,9 @@ int main(int argc, char* argv[]) {
 
     auto start = std::chrono::high_resolution_clock::now();
 
-    int depth = 6;
-    int nbComb = Chess::Position::getAllComb(depth, depth);
+    int nbthreads = 1;
+    int depth = 5;
+    int nbComb = Chess::Position::getAllComb(pos, depth, depth, nbthreads);
     if (nbComb != correct[depth]) {
       std::cout << red << "WRONG" << reset << " Number of combinations for depth " << depth << " -> " << nbComb << std::endl;
       std::cout << "Expected : " << correct[depth] << std::endl;
@@ -58,18 +57,23 @@ int main(int argc, char* argv[]) {
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop-start);
     std::cout << "Time taken by function: " << duration.count() << " milliseconds" << std::endl;
 
+    pos.freeHistory();
     Chess::Position::free();
     Chess::Search::free();
+
     return 0;
   }
   else if (argc >= 2 && strcmp(argv[1], "search") == 0) {
-    int depth = 8;
+    Chess::Position::Pos pos = Chess::Position::Pos();
+    Chess::Position::init(pos, fenInit);
+    Chess::Search::init();
+    int depth = 4;
     int alpha = -100000;
     int beta = 100000;
     int nbEval = 0;
 
     auto start = std::chrono::high_resolution_clock::now();
-    int score = Chess::Search::search(depth, depth, alpha, beta, nbEval);
+    int score = Chess::Search::search(pos, depth, depth, alpha, beta, nbEval);
     Chess::Position::Move best = Chess::Search::getBest();
     auto stop = std::chrono::high_resolution_clock::now();
 
@@ -79,9 +83,12 @@ int main(int argc, char* argv[]) {
     std::cout << "Best move : " << best.toString() << std::endl;
     std::cout << "Number of evaluations : " << nbEval << std::endl;
 
+    pos.freeHistory();
     Chess::Position::free();
     Chess::Search::free();
     return 0;
+  } else {
+    Chess::UCI::runUCI();
   }
   
   return 0;

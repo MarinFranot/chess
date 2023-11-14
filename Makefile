@@ -1,6 +1,6 @@
-OUTPUT = exec
+OUTPUT = antiPleutre.exe
 
-SOURCES = main.cpp position.cpp bitboard.cpp tools.cpp typesdef.h search.cpp
+SOURCES = main.cpp position.cpp bitboard.cpp tools.cpp typesdef.cpp search.cpp uci.cpp
 
 CC = g++
 

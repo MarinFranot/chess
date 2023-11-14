@@ -20,7 +20,7 @@ namespace Bitboard{
     {Position::NORTH, Position::SOUTH, Position::EAST, Position::WEST}};
 
     int mini = restriction ? 1 : 0;
-    int maxi = restriction ? Position::boardSize-2 : Position::boardSize-1;
+    int maxi = restriction ? 8-2 : 8-1;
 
     for (int way : ways[isRook]){
       

@@ -1,6 +1,8 @@
 #pragma once
 
 #include <iostream>
+#include <cstdio>
+#include <cstdlib>
 
 #include "typesdef.h"
 
@@ -18,6 +20,9 @@ namespace Tools {
   std::string toSquare(int pos);
   int squareToInt(std::string str);
   bool startswith(const char *pre, const char *str);
+  bool endsWith(const char* line, const char* suffix);
+  bool isMove(const char* line);
+  pieceType toPieceType(char c);
   
   uint64_t* getPiecesMovesMask(pieceType piece, bool white=true);
   uint64_t* getLineMasks(bool isRank);

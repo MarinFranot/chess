@@ -12,8 +12,8 @@ namespace Search {
 
   void init();
   void free();
-  int search(int initDepth, int depth, int alpha, int beta, int &nbEval);
-  int eval();
+  int search(Position::Pos pos, int initDepth, int depth, int alpha, int beta, int &nbEval);
+  int eval(Position::Pos pos);
   Position::Move getBest();
 
 
