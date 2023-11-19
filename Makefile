@@ -1,4 +1,4 @@
-OUTPUT = antiPleutre.exe
+OUTPUT = bot.exe
 
 SOURCES = main.cpp position.cpp bitboard.cpp tools.cpp typesdef.cpp search.cpp uci.cpp
 

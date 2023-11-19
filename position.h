@@ -69,8 +69,16 @@ namespace Position {
     }
 
     std::string toString(){
-      //std::string capture = isCapture() ? " x " : " ";
       return Tools::toSquare(getFrom()) + Tools::toSquare(getTo());
+    }
+    std::string getDetails() {
+      std::string res = toString();
+      res += isCapture() ? " x " : "";
+      res += isEnPassant() ? " en passant " : "";
+      res += is00() ? " 0-0 " : "";
+      res += is000() ? " 0-0-0 " : "";
+      res += isPromotion() ? " prom " : "";
+      return res;
     }
 
   };
@@ -218,7 +226,6 @@ namespace Position {
   };
 
 
-  void createTables();
   void printBitboard(uint64_t bitboard);
   uint64_t getMoves(Pos &pos, pieceType piece, int from, bool isWhite, bool getControl);
   Pos init(Pos &pos, std::string fen);

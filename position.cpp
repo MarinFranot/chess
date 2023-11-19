@@ -17,36 +17,22 @@ namespace Position {
   uint64_t rim = 0xFF818181818181FF;
   uint64_t corners = 0x8100000000000081;
 
-  uint64_t* rankMasks;// = Tools::getLineMasks(true);
-  uint64_t* colMasks;// = Tools::getLineMasks(false);
-  uint64_t* diagNEMasks;// = Tools::getDiagMasks(true);
-  uint64_t* diagSEMasks;// = Tools::getDiagMasks(false);
+  uint64_t* rankMasks = Tools::getLineMasks(true);
+  uint64_t* colMasks = Tools::getLineMasks(false);
+  uint64_t* diagNEMasks = Tools::getDiagMasks(true);
+  uint64_t* diagSEMasks = Tools::getDiagMasks(false);
 
   uint64_t* bishopMagicNbs = new uint64_t[64];
   uint64_t* rookMagicNbs = new uint64_t[64];
   int* bishopShifts = new int[64];
   int* rookShifts = new int[64];
 
-  uint64_t* pawnMoves[2];// = {Tools::getPiecesMovesMask(PAWN, false), Tools::getPiecesMovesMask(PAWN, true)};
-  uint64_t* knightMoves;// = Tools::getPiecesMovesMask(KNIGHT);
-  uint64_t** bishopMoves;// = Tools::getTable(false, bishopMagicNbs, bishopShifts);
-  uint64_t** rookMoves;// = Tools::getTable(true, rookMagicNbs, rookShifts);
-  uint64_t* kingMoves;// = Tools::getPiecesMovesMask(KING);
+  uint64_t* pawnMoves[2] = {Tools::getPiecesMovesMask(PAWN, false), Tools::getPiecesMovesMask(PAWN, true)};
+  uint64_t* knightMoves = Tools::getPiecesMovesMask(KNIGHT);
+  uint64_t** bishopMoves = Tools::getTable(false, bishopMagicNbs, bishopShifts);
+  uint64_t** rookMoves = Tools::getTable(true, rookMagicNbs, rookShifts);
+  uint64_t* kingMoves = Tools::getPiecesMovesMask(KING);
 
-  void createTables() {
-    rankMasks = Tools::getLineMasks(true);
-    colMasks = Tools::getLineMasks(false);
-    diagNEMasks = Tools::getDiagMasks(true);
-    diagSEMasks = Tools::getDiagMasks(false);
-
-    pawnMoves[0] = Tools::getPiecesMovesMask(PAWN, false);
-    pawnMoves[1] = Tools::getPiecesMovesMask(PAWN, true);
-    knightMoves = Tools::getPiecesMovesMask(KNIGHT);
-    kingMoves = Tools::getPiecesMovesMask(KING);
-
-    bishopMoves = Tools::getTable(false, bishopMagicNbs, bishopShifts);
-    rookMoves = Tools::getTable(true, rookMagicNbs, rookShifts);
-  }
 
   void printBitboard(uint64_t b) {
     for (int i=0; i<8; i++){

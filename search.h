@@ -12,8 +12,9 @@ namespace Search {
 
   void init();
   void free();
-  int search(Position::Pos pos, int initDepth, int depth, int alpha, int beta, int &nbEval);
-  int eval(Position::Pos pos);
+  void clearTranspositionTable();
+  int search(Position::Pos &pos, int initDepth, int depth, int alpha, int beta, int &nbEval);
+  int eval(Position::Pos &pos);
   Position::Move getBest();
 
 

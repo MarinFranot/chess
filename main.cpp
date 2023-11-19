@@ -26,7 +26,6 @@ int main(int argc, char* argv[]) {
   }
   else if (argc >= 2 && strcmp(argv[1], "perf") == 0) {
     Chess::Position::Pos pos = Chess::Position::Pos();
-    Chess::Position::createTables();
     Chess::Position::init(pos, fenInit);
     Chess::Search::init();
     const std::string red = "\033[1;31m";

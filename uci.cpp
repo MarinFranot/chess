@@ -4,8 +4,8 @@
 namespace Chess {
 namespace UCI {
 
-  std::string options = "id name Stockfish 14.1\n"
-  "id author the Stockfish developers (see AUTHORS file)\n\n"
+  std::string options = "id name robot anti pleutre\n"
+  "id author Marin Franot\n\n"
   "option name Threads type spin default 1 min 1 max 512\n"
   "option name Hash type spin default 16 min 1 max 33554432\n"
   "option name Move Overhead type spin default 10 min 0 max 5000\n"
@@ -41,21 +41,22 @@ namespace UCI {
   }
 
   void search(Position::Pos &pos) {
-    int depth = 6;
+    int depth = 3;
     int alpha = -100000;
     int beta = 100000;
     int nbEval = 0;
 
     Search::search(pos, depth, depth, alpha, beta, nbEval);
-    Chess::Position::Move best = Chess::Search::getBest();
+    Position::Move best = Chess::Search::getBest();
     Position::movePiece(pos, best);
     std::cout << "bestmove " << best.toString() << std::endl;
     std::cout << "nbEval " << nbEval << std::endl;
+
+    Search::clearTranspositionTable();
   }
 
   void runUCI() {
     Position::Pos pos = Position::Pos();
-    Position::createTables();
 
     Search::init();
     
@@ -91,6 +92,7 @@ namespace UCI {
       }
       if (Tools::isMove(line)) {
         Position::Move move = createMove(pos, line);
+        //std::cout << "move " << move.getDetails() << std::endl;
         Position::movePiece(pos, move);
 
         search(pos);
