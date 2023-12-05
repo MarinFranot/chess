@@ -19,7 +19,7 @@ namespace Position {
   extern const int NORTH_WEST;
   extern const int SOUTH_WEST;
 
-
+  // move object with details
   struct Move {
     uint64_t value;
     Move(uint64_t initialValue) {
@@ -83,6 +83,7 @@ namespace Position {
 
   };
 
+  // previous position variables
   struct SavePos {
     uint64_t myControl;
     uint64_t ennemyControl;
@@ -143,6 +144,7 @@ namespace Position {
     }
   };
 
+  // position variables
   struct Pos {
     pieceType* myPieces;
     pieceType* ennemyPieces;

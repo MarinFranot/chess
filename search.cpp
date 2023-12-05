@@ -10,6 +10,7 @@ namespace Search {
 
   int pieceValue[7] = {100, 305, 333, 563, 950, 0, 0};
 
+  //tables for piece activity
   int pawnTable[64] = {
     0,  0,  0,  0,  0,  0,  0,  0,
     5, 10, 10,-30,-30, 10, 10,  5,
@@ -95,6 +96,7 @@ namespace Search {
     std::mt19937_64 gen(rd());
     std::uniform_int_distribution<uint32_t> dis(0, UINT32_MAX);
 
+    // generate zobrist keys
     gen.seed(10);
     for (int i=0; i<64; i++) {
       whiteZobrist[i] = new int[7];
@@ -119,6 +121,7 @@ namespace Search {
     transpositionTable.clear();
   }
 
+  //get zobrist hash of the position
   uint32_t getHash(pieceType* myPieces, pieceType* ennemyPieces, bool whiteMove) {
     auto getHash2 = [](pieceType* myPieces, pieceType* ennemyPieces) {
       uint32_t hash = 0;
@@ -131,6 +134,7 @@ namespace Search {
     return whiteMove ? getHash2(myPieces, ennemyPieces) : getHash2(ennemyPieces, myPieces);
   }
 
+  //order the different moves
   Position::Move* orderMoves(Position::Pos pos, bool white, pieceType* myPieces, pieceType* ennemyPieces) {
     //int coeff = white ? 1 : -1;
     //int rev = white ? 0 : 1;
@@ -149,22 +153,22 @@ namespace Search {
     return legalMoves;
   }
 
-
+  //evaluation function
   int eval(Position::Pos &pos) {
     int res = 0;
     int coeff = pos.whiteMove ? 1 : -1;
-    int rev = pos.whiteMove ? 1 : 0;
+    int rev = pos.whiteMove ? 0 : 1;
     pieceType* myPieces = pos.myPieces;
     pieceType* ennemyPieces = pos.ennemyPieces;
     for(int i=0; i<64; i++) {
-      int indexTable = 63*rev - i*coeff;
+      int indexTable = 63*rev + i*coeff;
       res += (pieceValue[myPieces[i]] + pieceTables[myPieces[i]][indexTable]) * coeff;
       res -= (pieceValue[ennemyPieces[i]] + pieceTables[ennemyPieces[i]][indexTable]) * coeff;
     }
     return res;
   }
 
-
+  //alpha beta search
   int search(Position::Pos &pos, int initDepth, int depth, int alpha, int beta, int &nbEval) {
     if (depth == 0) {
       nbEval++;
@@ -177,12 +181,13 @@ namespace Search {
       bool whiteMove = pos.whiteMove;
       while(move.value != 0) {
         Position::movePiece(pos, move);
+
         uint32_t hash = getHash(pos.myPieces, pos.ennemyPieces, whiteMove);
         if (transpositionTable.find(hash) != transpositionTable.end()) {
           score = transpositionTable[hash];
         } else {
           score = search(pos, initDepth, depth-1, alpha, beta, nbEval);
-          //transpositionTable[hash] = score;
+          transpositionTable[hash] = score;
         }
 
         if (whiteMove) {
@@ -201,18 +206,17 @@ namespace Search {
           }
         }
         Position::undoMove(pos);
-        if (alpha >= beta) {
-          break;
-        }
-        
 
         indexMove++;
         move = pos.currentPos->legalMoves[indexMove];
+        if (alpha >= beta) {
+          break;
+        }
       }
       //check if there is no moves
       if (indexMove == 0) {
         if (pos.currentPos->check) {
-          score = pos.whiteMove ? -10000 : 10000;
+          score = whiteMove ? -10000 : 10000;
           return score;
         } else {
           return 0;

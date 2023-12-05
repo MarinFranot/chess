@@ -41,7 +41,7 @@ namespace UCI {
   }
 
   void search(Position::Pos &pos) {
-    int depth = 3;
+    int depth = 6;
     int alpha = -100000;
     int beta = 100000;
     int nbEval = 0;

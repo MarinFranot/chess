@@ -123,6 +123,8 @@ namespace Tools {
     return res;
   }
 
+
+  //get the masks for all positions of the long range pieces from a file
   uint64_t** getTable(bool isRook, uint64_t* magicNbs, int* shifts){
     const char* filename = isRook ? "rookTable.txt" : "bishopTable.txt";
     FILE* file = fopen(filename, "r");

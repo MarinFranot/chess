@@ -14,6 +14,7 @@
 namespace Chess {
 namespace Bitboard{
 
+  //get the possible moves for a piece
   uint64_t getMoves(int pos, uint64_t pieces, bool isRook, bool restriction){
     uint64_t res = 0;
     int ways[2][4] = {{Position::NORTH_EAST, Position::NORTH_WEST, Position::SOUTH_EAST, Position::SOUTH_WEST},
@@ -50,7 +51,7 @@ namespace Bitboard{
     return res;
   }
 
-
+  //get all the possible combinations of pieces restricted in a mask
   uint64_t* getAllPiecesComb(int pos, int &arrsize, bool isRook){
     uint64_t full1 = 0xFFFFFFFFFFFFFFFF;
 
@@ -83,7 +84,7 @@ namespace Bitboard{
     return res;
   }
 
-
+  //check if there is no duplicate in the array
   bool isUnique(uint64_t* picecsComb, int arrSize){
     for (int i=0; i<arrSize; i++){
       for (int j=i+1; j<arrSize; j++){
@@ -95,7 +96,7 @@ namespace Bitboard{
     return true;
   }
 
-
+  //get the magic number for a square
   uint64_t getMagicNumber(uint64_t* picecsComb, int arrSize, int &maxTab, uint64_t &shift, uint64_t obj){
     std::random_device rd;
     std::mt19937_64 gen(rd());
@@ -134,6 +135,7 @@ namespace Bitboard{
     return res;
   }
 
+  //write the table and magic numbers in a file
   void generateLongTable(uint64_t obj, bool isRook){
     std::ofstream outFile;
     outFile.open(isRook?"rookTable.txt":"bishopTable.txt", std::ios::out | std::ios::trunc);

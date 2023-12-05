@@ -6,6 +6,7 @@
 
 namespace Chess {
 namespace Position {
+  //directions
   extern const int EAST = 1;
   extern const int WEST = -1;
   extern const int NORTH = 8;
@@ -17,11 +18,13 @@ namespace Position {
   uint64_t rim = 0xFF818181818181FF;
   uint64_t corners = 0x8100000000000081;
 
+  // masks
   uint64_t* rankMasks = Tools::getLineMasks(true);
   uint64_t* colMasks = Tools::getLineMasks(false);
   uint64_t* diagNEMasks = Tools::getDiagMasks(true);
   uint64_t* diagSEMasks = Tools::getDiagMasks(false);
 
+  //generate bishop and rook moves
   uint64_t* bishopMagicNbs = new uint64_t[64];
   uint64_t* rookMagicNbs = new uint64_t[64];
   int* bishopShifts = new int[64];
@@ -34,17 +37,7 @@ namespace Position {
   uint64_t* kingMoves = Tools::getPiecesMovesMask(KING);
 
 
-  void printBitboard(uint64_t b) {
-    for (int i=0; i<8; i++){
-      for (int j=0; j<8; j++){
-        std::cout << ((b>>(i*8+j))&1ULL);
-      }
-      std::cout << std::endl;
-    }
-    std::cout << std::endl;
-
-  }
-
+  // get a rank or diagonal mask
   uint64_t getNEDiag(int pos){
     return diagNEMasks[14-(pos/8-pos%8+7)];
   }
@@ -59,7 +52,7 @@ namespace Position {
     return colMasks[pos%8];
   }
 
-
+  //get the moves for a piece
   uint64_t lookupBishop(const Pos& pos, int from){
     uint64_t mask = (pos.myPiecesMask|(pos.ennemyPiecesMask &~(1ULL<<pos.ennemyKingPos))) & (getNEDiag(from)|getSEDiag(from)) & ~(1ULL<<from) & ~rim;
     uint64_t index = (mask*bishopMagicNbs[from])>>(bishopShifts[from]);
@@ -80,7 +73,7 @@ namespace Position {
     return res;
   }
 
-  //update pins and discover checks
+  //update pins and discovery checks
   void updatePins(Pos &pos){
     pos.currentPos->pins = 0;
     uint64_t queen = lookupQueen(pos, pos.ennemyKingPos);
@@ -111,7 +104,7 @@ namespace Position {
           }
         }
       }
-      //update checks
+      //update discovery checks
       if (pos.myPiecesMask & (1ULL<<index) && index!=pos.currentPos->checkers[0]){
         pieceType piece = pos.myPieces[index];
         int dir = abs(Tools::getDir(pos.ennemyKingPos, index));
@@ -130,6 +123,7 @@ namespace Position {
     }
   }
 
+  // detect checks
   void updateChecks(Pos &pos) {
     pos.currentPos->blockCheck = 0;
     if (pos.currentPos->check) {
@@ -151,6 +145,7 @@ namespace Position {
     }
   }
 
+  //swap the position
   void swap(Pos &pos){
     pos.whiteMove = !pos.whiteMove;
     std::swap(pos.myPieces, pos.ennemyPieces);
@@ -160,7 +155,7 @@ namespace Position {
     std::swap(pos.myKingPos, pos.ennemyKingPos);
   }
 
-  
+  //get the moves for a piece
   uint64_t getMoves(Pos &pos, pieceType piece, int from, bool isWhite, bool getControl){
     SavePos* currentPos = pos.currentPos;
     uint64_t res = 0;
@@ -214,6 +209,7 @@ namespace Position {
   }
 
 
+  //generate all the moves for a position
   void updateAllMoves(Pos &pos){
     int index = 0;
     SavePos* currentPos = pos.currentPos;
@@ -255,6 +251,7 @@ namespace Position {
     currentPos->legalMoves[index] = Move();
   }
 
+  //update the squares controlled bt my pieces
   void updateControl(Pos &pos) {
     pos.currentPos->myControl = 0;
     uint64_t mask = pos.myPiecesMask;
@@ -267,6 +264,7 @@ namespace Position {
   }
 
 
+  //initialize the position from a fen string
   Pos init(Pos &pos, std::string fen){
     long unsigned int index = 0;
     int indexPos = 56;
@@ -372,6 +370,7 @@ namespace Position {
     return pos;
   }
 
+  //free the memory
   void free(){
     delete[] bishopMagicNbs;
     delete[] rookMagicNbs;
@@ -385,24 +384,22 @@ namespace Position {
     delete[] colMasks;
     delete[] diagNEMasks;
     delete[] diagSEMasks;
-    //delete[] pinsMasks;
-    //delete[] legalMoves;
     for (int i=0; i<64; i++){
       delete[] bishopMoves[i];
       delete[] rookMoves[i];
     }
     delete[] bishopMoves;
     delete[] rookMoves;
-    //delete[] myPieces;
-    //delete[] ennemyPieces;
   }
 
+  // move the king and the rook for castling
   void updateCastling(Pos &pos, int fromRook, int toRook) {
     pos.myPieces[toRook] = pos.myPieces[fromRook];
     pos.myPieces[fromRook] = EMPTY;
     pos.myPiecesMask = (pos.myPiecesMask & ~(1ULL<<fromRook)) | (1ULL<<toRook);
   }
 
+  //move a piece
   void movePiece(Pos &pos, Move move){
     auto removeCastling = [](Pos pos, int posRook, bool white) {
       if (posRook%8 == 0) {
@@ -477,6 +474,7 @@ namespace Position {
   }
 
   
+  //undo a move
   void undoMove(Pos &pos) {
     swap(pos);
     
@@ -517,13 +515,8 @@ namespace Position {
     }
   }
 
-  void printPos(Pos pos) {
-    std::cout << "White move : " << pos.whiteMove << std::endl;
 
-    printBitboard(pos.myPiecesMask);
-    printBitboard(pos.ennemyPiecesMask);
-  }
-
+  // get all the combinations of moves
   int getAllComb(Pos &pos, int initialDepth, int depth, const int nbThreads, int mini, int maxi) {
     if (nbThreads == 1) {
       if (depth==0) {
