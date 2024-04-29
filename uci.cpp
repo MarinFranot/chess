@@ -45,12 +45,17 @@ namespace UCI {
     int alpha = -100000;
     int beta = 100000;
     int nbEval = 0;
-
+    
+    auto start = std::chrono::high_resolution_clock::now();
     Search::search(pos, depth, depth, alpha, beta, nbEval);
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop-start);
+
     Position::Move best = Chess::Search::getBest();
     Position::movePiece(pos, best);
     std::cout << "bestmove " << best.toString() << std::endl;
     std::cout << "nbEval " << nbEval << std::endl;
+    std::cout << "time " << duration.count() << std::endl;
 
     Search::clearTranspositionTable();
   }

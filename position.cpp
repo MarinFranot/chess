@@ -52,6 +52,22 @@ namespace Position {
     return colMasks[pos%8];
   }
 
+  void printBitboard(uint64_t bitboard) {
+    int i = 56;
+    while (true) {
+      std::cout << ((bitboard >> i) & 1ULL);
+      if (i%8 == 7) {
+        std::cout << std::endl;
+        if (i == 7) {
+          break;
+        }
+        i -= 16;
+      }
+      i++;
+    }
+    std::cout << std::endl;
+  }
+
   //get the moves for a piece
   uint64_t lookupBishop(const Pos& pos, int from){
     uint64_t mask = (pos.myPiecesMask|(pos.ennemyPiecesMask &~(1ULL<<pos.ennemyKingPos))) & (getNEDiag(from)|getSEDiag(from)) & ~(1ULL<<from) & ~rim;
@@ -62,21 +78,41 @@ namespace Position {
     uint64_t restrict = rim & ~((getRankMask(63) & -static_cast<uint64_t>(from/8==7)) | (getRankMask(0) & -static_cast<uint64_t>(from/8==0)) |
      (getColMask(7) & -static_cast<uint64_t>(from%8==7)) | (getColMask(0) & -static_cast<uint64_t>(from%8==0))) ;
     uint64_t mask = (pos.myPiecesMask|(pos.ennemyPiecesMask &~(1ULL<<pos.ennemyKingPos))) & (getRankMask(from)|getColMask(from)) & ~(1ULL<<from) & ~(restrict | corners);	
-    uint64_t res = rookMoves[from][(mask*rookMagicNbs[from])>>rookShifts[from]];
-    return res;
+    return rookMoves[from][(mask*rookMagicNbs[from])>>rookShifts[from]];
   }
   uint64_t lookupQueen(const Pos &pos, int from){
-    //uint64_t res = lookupBishop(pos, from) | lookupRook(pos, from);
-    uint64_t bishop = lookupBishop(pos, from);
-    uint64_t rook = lookupRook(pos, from);
-    uint64_t res = bishop | rook;
-    return res;
+    return lookupBishop(pos, from) | lookupRook(pos, from);
   }
 
   //update pins and discovery checks
   void updatePins(Pos &pos){
     pos.currentPos->pins = 0;
+    int enPassant = pos.currentPos->enPassant;
+    enPassant = enPassant > 0 ? (pos.whiteMove ? enPassant+8 : enPassant-8) : enPassant;
+
+    int remove = -1;
+    uint64_t dirPawn = 0;
+    uint64_t bufferEnnemyPiecesMask = pos.ennemyPiecesMask;
+    uint64_t bufferMyPiecesMask = pos.myPiecesMask;
+    if (enPassant >=0 && pos.ennemyKingPos/8 == enPassant/8) {
+      
+      bool condLeft = enPassant % 8 > 0 && ((pos.ennemyPawnsMask >> (enPassant-1)) & 1ULL);
+      bool condRight = enPassant % 8 < 7 && ((pos.ennemyPawnsMask >> (enPassant+1)) & 1ULL);
+      int newPawn = condLeft ? enPassant-1 : condRight ? enPassant+1 : -1;
+
+      remove = pos.ennemyKingPos%8 < enPassant%8 ? std::min(newPawn, enPassant) : std::max(newPawn, enPassant);
+      if (condLeft | condRight) {
+        dirPawn = Tools::getDir(newPawn, enPassant);
+        pos.myPiecesMask &= ~(1ULL<<remove);
+        pos.ennemyPiecesMask &= ~(1ULL<<remove);
+      }
+    }
+
     uint64_t queen = lookupQueen(pos, pos.ennemyKingPos);
+    pos.ennemyPiecesMask = bufferEnnemyPiecesMask;
+    pos.myPiecesMask = bufferMyPiecesMask;
+
+
     while(queen){
       int index = Tools::getLastBitIndex(queen);
       queen &= (queen - 1);
@@ -91,8 +127,17 @@ namespace Position {
         } else if (dir == NORTH_EAST || dir == NORTH_WEST){
           mask = dir==NORTH_EAST ? lookupBishop(pos, index) & getNEDiag(index) : lookupBishop(pos, index) & getSEDiag(index);
         }
-
         uint64_t originalMask = mask;
+        
+        bool condPassant = pinned == PAWN && (dir == 1) && (pos.myPieces[index + dirPawn] == PAWN);
+        if (condPassant) {
+          originalMask = ~(1ULL << pos.currentPos->enPassant);
+          pos.myPiecesMask &= ~(1ULL<<(index+dirPawn));
+          mask = lookupRook(pos, index) & getRankMask(index);
+          pos.myPiecesMask |= 1ULL<<(index+dirPawn);
+        }
+
+        
         while(mask!=0){
           int indexSearsh = Tools::getLastBitIndex(mask);
           mask &= (mask - 1);
@@ -162,8 +207,9 @@ namespace Position {
     uint64_t pin = ((currentPos->pins>>from) & 1ULL) ? currentPos->pinsMasks[from] : UINT64_MAX;
     if (piece == PAWN){
       int dir = pos.whiteMove ? 1 : -1;
+      uint64_t control = pawnMoves[pos.whiteMove][from] & ~getColMask(from);
       if (getControl){
-        res = pawnMoves[pos.whiteMove][from] & ~getColMask(from);
+        return control;
       } else {
         uint64_t col = getColMask(from);
         res = pawnMoves[pos.whiteMove][from] & ~((pos.myPiecesMask | pos.ennemyPiecesMask) & col);
@@ -173,8 +219,12 @@ namespace Position {
         } else if (((pos.myPiecesMask | pos.ennemyPiecesMask)>>(from+8*dir))&1ULL){
           res &= ~up2;
         }
-        bool passant = currentPos->enPassant >= 0;
-        res = ((res & col) | (res & (pos.ennemyPiecesMask| ((1ULL<<currentPos->enPassant)*passant)))) & currentPos->blockCheck & pin;
+        int enPassant = currentPos->enPassant;
+        bool passant = enPassant >= 0;
+        res = ((res & col) | (res & (pos.ennemyPiecesMask| ((1ULL<<enPassant)*passant)))) & currentPos->blockCheck & pin;
+        if (passant && currentPos->blockCheck == 1ULL<<(enPassant - 8*dir) && ((control & 1ULL<<enPassant) != 0)) {
+          res |= ((1ULL << enPassant) & pin);
+        }
       }
       
     } else if (piece == KNIGHT){
@@ -277,8 +327,8 @@ namespace Position {
       pos.ennemyPieces[i] = EMPTY;
       currentPos->pinsMasks[i] = 0;
     }
-    currentPos->checkers[0] = 0;
-    currentPos->checkers[1] = 1;
+    currentPos->checkers[0] = -1;
+    currentPos->checkers[1] = -1;
 
     pieceType* pieceMap = new pieceType[26];
     pieceMap['p'-'a'] = pieceType(PAWN);
@@ -362,9 +412,15 @@ namespace Position {
   
     std::string moveCounterString = movesCountString.substr(movesCountString.find(" ")+1, movesCountString.length());
     //currentPos.moveCounter = std::stoi(moveCounterString);
+    swap(pos);
 
+    updateControl(pos);
+    currentPos->check = currentPos->ennemyControl & (1ULL<<pos.myKingPos);
     updatePins(pos);
+    updateChecks(pos);
+    swap(pos);
     updateAllMoves(pos);
+
 
     delete[] pieceMap;
     return pos;
@@ -401,7 +457,7 @@ namespace Position {
 
   //move a piece
   void movePiece(Pos &pos, Move move){
-    auto removeCastling = [](Pos pos, int posRook, bool white) {
+    auto removeCastling = [](Pos &pos, int posRook, bool white) {
       if (posRook%8 == 0) {
         pos.currentPos->possible000[white] = false;
       } else if (posRook%8 == 7) {
@@ -416,7 +472,6 @@ namespace Position {
     int from = move.getFrom();
     int to = move.getTo();
     
-    
     pieceType piece = pos.myPieces[from];
     pos.myPieces[to] = piece;
     pos.myPieces[from] = EMPTY;
@@ -427,6 +482,7 @@ namespace Position {
         pieceType promotion = move.getPromotion();
         pos.myPieces[to] = promotion;
         pos.myPawnsMask &= ~(1ULL<<from);
+        piece = promotion;
       } else {
         pos.myPawnsMask = (pos.myPawnsMask & ~(1ULL<<from)) | (1ULL<<to);
         int dir = pos.whiteMove ? 1 : -1;
@@ -453,14 +509,14 @@ namespace Position {
       pieceType captured = move.getCapturedPiece();
       if (captured == PAWN){
         pos.ennemyPawnsMask &= ~(1ULL<<pop);
-      } else if (captured == ROOK) {
-        
+      } else if (captured == ROOK && to/8 == pos.ennemyKingPos/8) {
         removeCastling(pos, to, !pos.whiteMove);
       }
     }
 
     uint64_t control = getMoves(pos, piece, to, pos.whiteMove, true);
     currentPos->check = control & (1ULL<<pos.ennemyKingPos);
+    currentPos->checkers[0] = -1;
     currentPos->checkers[1] = -1;
     if (currentPos->check){
       currentPos->checkers[0] = to;
@@ -517,22 +573,27 @@ namespace Position {
 
 
   // get all the combinations of moves
-  int getAllComb(Pos &pos, int initialDepth, int depth, const int nbThreads, int mini, int maxi) {
-    if (nbThreads == 1) {
+  int getAllComb(Pos &pos, int initialDepth, int depth, const int nbThreads, bool multi, int mini, int maxi) {
+    if (!multi) {
       if (depth==0) {
         return 1;
       } else if (depth == 1) {
-        int res = 0;
-        Move move = pos.currentPos->legalMoves[res];
-        while (move.value != 0) {
-          res++;
-          move = pos.currentPos->legalMoves[res];
-        }
-        return res;
-      }
-      else {      
+        return pos.currentPos->nbLegalMoves;
+      } else {      
         int res = 0;
         int nbLegalMoves = pos.currentPos->nbLegalMoves;
+
+        if (maxi - mini == 1 && nbThreads > 1) {
+          Move move = pos.currentPos->legalMoves[mini];
+          movePiece(pos, move);
+          res += getAllComb(pos, initialDepth, depth - 1, nbThreads, true);
+          undoMove(pos);
+          if (depth==initialDepth) {
+            std::cout << move.toString() << " -> " << res << " (" << nbThreads << " Threads)" << 
+            std::endl;
+          }
+          return res;
+        }
         for (int i=mini; i<std::min(maxi, nbLegalMoves); i++){
           Move move = pos.currentPos->legalMoves[i];
           movePiece(pos, move);
@@ -548,29 +609,33 @@ namespace Position {
         return res;
       }
     } else {
-      std::vector<std::thread> threads(nbThreads);
-      std::vector<int> res(nbThreads);
+      int borneThreads = std::min(nbThreads, pos.currentPos->nbLegalMoves);
+      std::vector<std::thread> threads(borneThreads);
+      std::vector<int> res(borneThreads);
+      
+      int nbLegalMoves = pos.currentPos->nbLegalMoves;
+      int step = nbLegalMoves / borneThreads;
+      int mod = nbThreads % borneThreads;
 
-      int step = pos.currentPos->nbLegalMoves / nbThreads;
-      for (int i=0; i<nbThreads; i++) {
-        int mini = i*step;
-        int maxi = (i+1)*step;
-        //copy pos
-        Pos pos_i = Pos(pos);
-        threads[i] = std::thread([mini, maxi, &pos_i, &res, i, initialDepth, depth, nbThreads](){
-          res[i] = getAllComb(pos_i, initialDepth, depth, 1, mini, maxi);
+      for (int i = 0; i < borneThreads; i++) {
+        int newThreads = nbThreads / borneThreads + (i < mod ? 1 : 0);
+        int mini = i * step;
+        int maxi = (i+1) * step;
+        threads[i] = std::thread([&, i, initialDepth, depth, mini, maxi](){
+          Pos position(pos);
+          res[i] = getAllComb(position, initialDepth, depth, newThreads, false, mini, maxi);
         });
       }
-      for (int i=0; i<nbThreads; i++) {
-        threads[i].join();
+
+      for (int i = 0; i < borneThreads; i++) {
+          threads[i].join();
       }
+
       int result = 0;
-      for (int i=0; i<nbThreads; i++) {
-        result += res[i];
+      for (int i = 0; i < borneThreads; i++) {
+          result += res[i];
       }
       return result;
-
-
     }
   }
 }

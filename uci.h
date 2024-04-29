@@ -2,7 +2,7 @@
 #include <string>
 #include <cstring>
 #include <fstream>
-
+#include <chrono>
 
 #include "typesdef.h"
 #include "position.h"

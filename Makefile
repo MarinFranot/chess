@@ -1,4 +1,4 @@
-OUTPUT = bot.exe
+OUTPUT = exec
 
 SOURCES = main.cpp position.cpp bitboard.cpp tools.cpp typesdef.cpp search.cpp uci.cpp
 

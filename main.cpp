@@ -36,11 +36,17 @@ int main(int argc, char* argv[]) {
 
     int correct[7] = {1, 20, 400, 8902, 197281, 4865609, 119060324};
 
+
+
+
+    std::cout << "start perft" << std::endl;
+
+
     auto start = std::chrono::high_resolution_clock::now();
 
     int nbthreads = 1;
-    int depth = 5;
-    int nbComb = Chess::Position::getAllComb(pos, depth, depth, nbthreads);
+    int depth = 6;
+    int nbComb = Chess::Position::getAllComb(pos, depth, depth, nbthreads, false);
     if (nbComb != correct[depth]) {
       std::cout << red << "WRONG" << reset << " Number of combinations for depth " << depth << " -> " << nbComb << std::endl;
       std::cout << "Expected : " << correct[depth] << std::endl;

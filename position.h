@@ -22,6 +22,7 @@ namespace Position {
   // move object with details
   struct Move {
     uint64_t value;
+    int score = -1000000;
     Move(uint64_t initialValue) {
       value = initialValue;
     }
@@ -69,7 +70,8 @@ namespace Position {
     }
 
     std::string toString(){
-      return Tools::toSquare(getFrom()) + Tools::toSquare(getTo());
+      std::string prom = isPromotion() ? pieceStr[getPromotion()] : "";
+      return Tools::toSquare(getFrom()) + Tools::toSquare(getTo()) + prom;
     }
     std::string getDetails() {
       std::string res = toString();
@@ -234,8 +236,8 @@ namespace Position {
   void movePiece(Pos &pos, Move move);
   void undoMove(Pos& pos);
   void free();
-  int getAllComb(Pos &pos, int initialDepth, int depth=0, const int nbThreads=1, int mini=0, int maxi=Tools::MAX_LEGAL_MOVES);
-  void printPos(Pos pos);
+  int getAllComb(Pos &pos, int initialDepth, int depth=0, const int nbThreads=1, bool multi=false, int mini=0, int maxi=Tools::MAX_LEGAL_MOVES);
+  void printPos(Pos &pos);
   
 }
 }

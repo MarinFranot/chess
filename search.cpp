@@ -1,5 +1,6 @@
 #include "search.h"
 
+
 namespace Chess {
 namespace Search {
 
@@ -133,24 +134,31 @@ namespace Search {
     };
     return whiteMove ? getHash2(myPieces, ennemyPieces) : getHash2(ennemyPieces, myPieces);
   }
+  int getIndex(int i, int rev, int coeff) {
+    return 63*rev + i*coeff;
+  }
 
   //order the different moves
-  Position::Move* orderMoves(Position::Pos pos, bool white, pieceType* myPieces, pieceType* ennemyPieces) {
-    //int coeff = white ? 1 : -1;
-    //int rev = white ? 0 : 1;
+  void orderMoves(Position::Pos pos) {
+    auto compare = [](Position::Move a, Position::Move b) {
+      return a.score > b.score;
+    };
+    int coeff = pos.whiteMove ? 1 : -1;
+    int rev = pos.whiteMove ? 0 : 1;
     Position::Move* legalMoves = pos.currentPos->legalMoves;
-    int* score = new int[Tools::MAX_LEGAL_MOVES];
 
     for (int i=0; i<Tools::MAX_LEGAL_MOVES; i++) {
-      Position::Move move = legalMoves[i];
-      if (move.value == 0) {
+      if (legalMoves[i].value == 0) {
         break;
       }
-      //int to = move.getTo();
-      //int indexTable = 63*rev + move.getTo() * coeff;
+      Position::Move move = legalMoves[i];
+      int to = move.getTo();
+      int from = move.getFrom();
+      move.score = pieceTables[pos.myPieces[from]][getIndex(to, rev, coeff)];
+      move.score -=pieceTables[pos.myPieces[from]][getIndex(from, rev, coeff)];
+      move.score += pieceValue[pos.ennemyPieces[to]];
     }
-    delete[] score;
-    return legalMoves;
+    std::sort(legalMoves, legalMoves + Tools::MAX_LEGAL_MOVES, compare);
   }
 
   //evaluation function
@@ -161,7 +169,7 @@ namespace Search {
     pieceType* myPieces = pos.myPieces;
     pieceType* ennemyPieces = pos.ennemyPieces;
     for(int i=0; i<64; i++) {
-      int indexTable = 63*rev + i*coeff;
+      int indexTable = getIndex(i, rev, coeff);
       res += (pieceValue[myPieces[i]] + pieceTables[myPieces[i]][indexTable]) * coeff;
       res -= (pieceValue[ennemyPieces[i]] + pieceTables[ennemyPieces[i]][indexTable]) * coeff;
     }
@@ -179,6 +187,8 @@ namespace Search {
       int score = 0;
       Position::Move move = pos.currentPos->legalMoves[indexMove];
       bool whiteMove = pos.whiteMove;
+      orderMoves(pos);
+      
       while(move.value != 0) {
         Position::movePiece(pos, move);
 
